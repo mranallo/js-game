@@ -697,25 +697,7 @@ function drawBigDropEffects() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
     
-    // 6. Dramatic text flash - "YO!" for main drop, "DROP!" for others
-    if (rawIntensity > 0.8) {
-        ctx.save();
-        ctx.globalAlpha = Math.min(1, (rawIntensity - 0.8) * 3);
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        
-        // Main drop (rawIntensity > 1.8) shows "YO!" bigger
-        const isMainDrop = rawIntensity > 1.8;
-        const text = isMainDrop ? 'YO!' : 'DROP!';
-        const fontSize = isMainDrop ? 200 : 120;
-        
-        ctx.font = `bold ${fontSize}px "Segoe UI", Arial, sans-serif`;
-        ctx.fillStyle = isMainDrop ? '#fff' : '#ff1744';
-        ctx.shadowColor = isMainDrop ? '#790ECB' : '#ff1744';
-        ctx.shadowBlur = isMainDrop ? 60 : 40;
-        ctx.fillText(text, canvas.width / 2, canvas.height / 2 - 50);
-        ctx.restore();
-    }
+
     
     // 7. Extra effect for MAIN drop - pulsing border
     if (rawIntensity > 1.8) {
