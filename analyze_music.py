@@ -75,8 +75,6 @@ def analyze_music(filepath):
     
     spec_times = librosa.frames_to_time(np.arange(S.shape[1]), sr=sr)
     
-    # Sample at regular intervals (every 50ms for smooth animation)
-    print("Generating timeline...")
     # Detect drops (sudden increases in bass energy)
     print("Detecting drops...")
     drops = []
@@ -96,6 +94,36 @@ def analyze_music(filepath):
                 last_drop_time = t
     
     print(f"Found {len(drops)} drops")
+    
+    # Detect BIG DROPS - when bass goes from quiet to sustained loud
+    # This detects when a bass line "starts" rather than just momentary hits
+    print("Detecting big drops (bass line starts)...")
+    big_drops = []
+    window_before = 40  # ~2 seconds before
+    window_after = 20   # ~1 second after
+    min_big_drop_gap = 10.0  # At least 10 seconds between big drops
+    last_big_drop_time = -min_big_drop_gap
+    
+    for i in range(window_before, len(bass_energy) - window_after):
+        t = spec_times[i]
+        
+        # Calculate average bass before and after this point
+        bass_before = np.mean(bass_energy[i-window_before:i])
+        bass_after = np.mean(bass_energy[i:i+window_after])
+        
+        # Big drop = bass was quiet before, loud after (sustained change)
+        # The ratio should be significant (at least 3x increase)
+        if bass_before < 0.15 and bass_after > 0.3 and bass_after > bass_before * 3:
+            if (t - last_big_drop_time) > min_big_drop_gap:
+                big_drops.append({
+                    "time": round(float(t), 3),
+                    "percent": round(float(t / duration * 100), 1),
+                    "intensity": round(float(bass_after / bass_before), 2) if bass_before > 0 else 10.0
+                })
+                last_big_drop_time = t
+                print(f"  Big drop at {t:.1f}s ({t/duration*100:.1f}%) - bass ratio: {bass_after/bass_before:.1f}x")
+    
+    print(f"Found {len(big_drops)} big drops")
     
     sample_interval = 0.05  # 50ms = 20 samples per second
     timeline = []
@@ -129,6 +157,7 @@ def analyze_music(filepath):
         "beatCount": len(beat_times),
         "beats": [round(float(bt), 3) for bt in beat_times],
         "drops": drops,
+        "bigDrops": big_drops,
         "timeline": timeline
     }
     

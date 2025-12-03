@@ -24,6 +24,11 @@ let beatPulse = 0;
 let dropActive = false;
 let dropIntensity = 0;
 let lastDropTime = -10;
+let bigDropIntensity = 0; // Extra intense for big drops
+let screenShake = 0;
+// Track which big drops have been triggered (by their time)
+let triggeredBigDrops = new Set();
+let flashScreen = 0; // White flash on big drops
 
 // Music timeline data (loaded from JSON)
 let musicTimeline = null;
@@ -46,10 +51,52 @@ fetch('music_timeline.json')
 function updateAudioLevels() {
     // Decay drop intensity
     dropIntensity = Math.max(0, dropIntensity - 0.02);
+    bigDropIntensity = Math.max(0, bigDropIntensity - 0.006); // Even slower decay for big drop
+    screenShake = Math.max(0, screenShake - 0.04);
+    flashScreen = Math.max(0, flashScreen - 0.08); // Quick flash decay
+    
+    const currentTime = music.currentTime;
+    
+    // Check for BIG DROPS from the analyzed music timeline
+    if (timelineLoaded && musicTimeline && musicTimeline.bigDrops) {
+        for (const bigDrop of musicTimeline.bigDrops) {
+            const dropTime = bigDrop.time;
+            const inWindow = currentTime >= dropTime - 0.3 && currentTime <= dropTime + 0.7;
+            const dropKey = dropTime.toFixed(1);
+            
+            if (inWindow && !triggeredBigDrops.has(dropKey)) {
+                triggeredBigDrops.add(dropKey);
+                
+                // The 22s drop (30.6%) is the MAIN "yo" drop - make it the biggest!
+                const isMainDrop = dropTime >= 21.5 && dropTime <= 22.5;
+                
+                if (isMainDrop) {
+                    // MEGA DROP - the "yo" moment!
+                    bigDropIntensity = 2.5;
+                    dropIntensity = 2.5;
+                    screenShake = 2.0;
+                    flashScreen = 1.5;
+                } else {
+                    // Regular big drop
+                    bigDropIntensity = 1.2;
+                    dropIntensity = 1.2;
+                    screenShake = 1.0;
+                    flashScreen = 0.7;
+                }
+            }
+        }
+    } else if (currentTime >= GAME_DURATION * 0.29 && currentTime <= GAME_DURATION * 0.31) {
+        // Fallback: trigger at ~30% if no timeline
+        if (!triggeredBigDrops.has('fallback')) {
+            triggeredBigDrops.add('fallback');
+            bigDropIntensity = 1.0;
+            dropIntensity = 1.0;
+            screenShake = 1.0;
+        }
+    }
     
     if (timelineLoaded && musicTimeline && musicTimeline.timeline) {
         // Use pre-analyzed timeline data
-        const currentTime = music.currentTime;
         
         // Find the closest timeline entry (50ms intervals)
         const index = Math.floor(currentTime / 0.05);
@@ -68,6 +115,7 @@ function updateAudioLevels() {
             if (entry.drop && (currentTime - lastDropTime) > 1.5) {
                 dropActive = true;
                 dropIntensity = 1.0;
+                screenShake = 0.5;
                 lastDropTime = currentTime;
             }
         }
@@ -529,6 +577,122 @@ function drawBackground() {
     }
 }
 
+// Draw extra intense effects for the BIG DROP at 30 seconds
+function drawBigDropEffects() {
+    const intensity = bigDropIntensity;
+    
+    // White flash at the start of the drop
+    if (flashScreen > 0) {
+        ctx.save();
+        ctx.fillStyle = `rgba(255, 255, 255, ${flashScreen * 0.7})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+    }
+    
+    // 1. Massive center burst
+    ctx.save();
+    const burstGradient = ctx.createRadialGradient(
+        canvas.width / 2, GROUND_Y / 2, 0,
+        canvas.width / 2, GROUND_Y / 2, canvas.width * intensity
+    );
+    burstGradient.addColorStop(0, 'rgba(255, 23, 68, 0.8)');
+    burstGradient.addColorStop(0.3, 'rgba(121, 14, 203, 0.4)');
+    burstGradient.addColorStop(1, 'transparent');
+    ctx.globalAlpha = intensity * 0.6;
+    ctx.fillStyle = burstGradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    
+    // 2. Thick radiating lines from all directions
+    ctx.save();
+    ctx.globalAlpha = intensity * 0.7;
+    ctx.strokeStyle = '#ff1744';
+    ctx.lineWidth = 10 + intensity * 20;
+    const lineCount = 16;
+    for (let i = 0; i < lineCount; i++) {
+        const angle = (i / lineCount) * Math.PI * 2;
+        const length = canvas.width * (1 - intensity * 0.3);
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, GROUND_Y / 2);
+        ctx.lineTo(
+            canvas.width / 2 + Math.cos(angle) * length,
+            GROUND_Y / 2 + Math.sin(angle) * length
+        );
+        ctx.stroke();
+    }
+    ctx.restore();
+    
+    // 3. Multiple expanding rings
+    ctx.save();
+    for (let ring = 0; ring < 6; ring++) {
+        const ringProgress = (1 - intensity) * 1.5 + ring * 0.1;
+        if (ringProgress > 0 && ringProgress < 1.2) {
+            ctx.strokeStyle = ring % 2 === 0 ? '#ff1744' : '#790ECB';
+            ctx.lineWidth = 5 + (1 - ringProgress) * 10;
+            ctx.globalAlpha = Math.max(0, (1 - ringProgress) * 0.8);
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, GROUND_Y / 2, ringProgress * 500, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+    ctx.restore();
+    
+    // 4. Corner bursts
+    ctx.save();
+    ctx.globalAlpha = intensity * 0.5;
+    const corners = [[0, 0], [canvas.width, 0], [0, canvas.height], [canvas.width, canvas.height]];
+    for (const [cx, cy] of corners) {
+        const cornerGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, 300 * intensity);
+        cornerGradient.addColorStop(0, '#ff1744');
+        cornerGradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = cornerGradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    ctx.restore();
+    
+    // 5. Pulsing vignette
+    ctx.save();
+    const vignetteGradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, canvas.width * 0.2,
+        canvas.width / 2, canvas.height / 2, canvas.width * 0.7
+    );
+    vignetteGradient.addColorStop(0, 'transparent');
+    vignetteGradient.addColorStop(1, `rgba(255, 23, 68, ${intensity * 0.4})`);
+    ctx.fillStyle = vignetteGradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    
+    // 6. Dramatic text flash - "YO!" for main drop, "DROP!" for others
+    if (intensity > 0.8) {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, (intensity - 0.8) * 3); // Fade in quickly
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Main drop (intensity > 2) shows "YO!" bigger
+        const isMainDrop = intensity > 1.8;
+        const text = isMainDrop ? 'YO!' : 'DROP!';
+        const fontSize = isMainDrop ? 200 : 120;
+        
+        ctx.font = `bold ${fontSize}px "Segoe UI", Arial, sans-serif`;
+        ctx.fillStyle = isMainDrop ? '#fff' : '#ff1744';
+        ctx.shadowColor = isMainDrop ? '#790ECB' : '#ff1744';
+        ctx.shadowBlur = isMainDrop ? 60 : 40;
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2 - 50);
+        ctx.restore();
+    }
+    
+    // 7. Extra effect for MAIN drop - pulsing border
+    if (intensity > 1.8) {
+        ctx.save();
+        ctx.strokeStyle = '#790ECB';
+        ctx.lineWidth = 20 * intensity;
+        ctx.globalAlpha = (intensity - 1.8) * 1.5;
+        ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+        ctx.restore();
+    }
+}
+
 // Draw minimap at top of screen
 function drawMinimap() {
     const startX = 150; // Player start position
@@ -714,8 +878,21 @@ function gameLoop(timestamp) {
         launchFirework();
     }
     
+    // Apply screen shake
+    ctx.save();
+    if (screenShake > 0) {
+        const shakeX = (Math.random() - 0.5) * screenShake * 20;
+        const shakeY = (Math.random() - 0.5) * screenShake * 20;
+        ctx.translate(shakeX, shakeY);
+    }
+    
     // Draw everything
     drawBackground();
+    
+    // Draw BIG DROP extra effects
+    if (bigDropIntensity > 0) {
+        drawBigDropEffects();
+    }
     
     // Draw fireworks behind everything during victory lap
     if (inVictoryLap) {
@@ -731,6 +908,9 @@ function gameLoop(timestamp) {
     
     drawPlayer();
     updateParticles();
+    
+    // Restore from screen shake
+    ctx.restore();
     drawMinimap();
     
     // Continue loop
@@ -774,11 +954,17 @@ function startGame() {
     fireworks = [];
     fireworkParticles = [];
     
-    // Reset beat levels
+    // Reset beat levels and drop effects
     bassLevel = 0;
     midLevel = 0;
     highLevel = 0;
     beatPulse = 0;
+    dropIntensity = 0;
+    bigDropIntensity = 0;
+    screenShake = 0;
+    flashScreen = 0;
+    triggeredBigDrops = new Set();
+    lastDropTime = -10;
     
     // Reset player
     player.x = 150;
