@@ -597,21 +597,24 @@ function drawBackground() {
 
 // Draw extra intense effects for the BIG DROP at 30 seconds
 function drawBigDropEffects() {
-    const intensity = bigDropIntensity;
+    // Clamp intensity to prevent gradient overflow crashes
+    const intensity = Math.min(bigDropIntensity, 1.5);
+    const rawIntensity = bigDropIntensity; // Keep raw for text check
     
     // White flash at the start of the drop
     if (flashScreen > 0) {
         ctx.save();
-        ctx.fillStyle = `rgba(255, 255, 255, ${flashScreen * 0.7})`;
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(flashScreen * 0.7, 1)})`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
     }
     
     // 1. Massive center burst
     ctx.save();
+    const burstRadius = Math.min(canvas.width * intensity, canvas.width * 1.5);
     const burstGradient = ctx.createRadialGradient(
         canvas.width / 2, GROUND_Y / 2, 0,
-        canvas.width / 2, GROUND_Y / 2, canvas.width * intensity
+        canvas.width / 2, GROUND_Y / 2, burstRadius
     );
     burstGradient.addColorStop(0, 'rgba(255, 23, 68, 0.8)');
     burstGradient.addColorStop(0.3, 'rgba(121, 14, 203, 0.4)');
@@ -657,10 +660,11 @@ function drawBigDropEffects() {
     
     // 4. Corner bursts
     ctx.save();
-    ctx.globalAlpha = intensity * 0.5;
+    ctx.globalAlpha = Math.min(intensity * 0.5, 0.75);
     const corners = [[0, 0], [canvas.width, 0], [0, canvas.height], [canvas.width, canvas.height]];
+    const cornerRadius = Math.min(300 * intensity, 450);
     for (const [cx, cy] of corners) {
-        const cornerGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, 300 * intensity);
+        const cornerGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, cornerRadius);
         cornerGradient.addColorStop(0, '#ff1744');
         cornerGradient.addColorStop(1, 'transparent');
         ctx.fillStyle = cornerGradient;
@@ -681,14 +685,14 @@ function drawBigDropEffects() {
     ctx.restore();
     
     // 6. Dramatic text flash - "YO!" for main drop, "DROP!" for others
-    if (intensity > 0.8) {
+    if (rawIntensity > 0.8) {
         ctx.save();
-        ctx.globalAlpha = Math.min(1, (intensity - 0.8) * 3); // Fade in quickly
+        ctx.globalAlpha = Math.min(1, (rawIntensity - 0.8) * 3);
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
-        // Main drop (intensity > 2) shows "YO!" bigger
-        const isMainDrop = intensity > 1.8;
+        // Main drop (rawIntensity > 1.8) shows "YO!" bigger
+        const isMainDrop = rawIntensity > 1.8;
         const text = isMainDrop ? 'YO!' : 'DROP!';
         const fontSize = isMainDrop ? 200 : 120;
         
@@ -701,11 +705,11 @@ function drawBigDropEffects() {
     }
     
     // 7. Extra effect for MAIN drop - pulsing border
-    if (intensity > 1.8) {
+    if (rawIntensity > 1.8) {
         ctx.save();
         ctx.strokeStyle = '#790ECB';
-        ctx.lineWidth = 20 * intensity;
-        ctx.globalAlpha = (intensity - 1.8) * 1.5;
+        ctx.lineWidth = Math.min(20 * rawIntensity, 50);
+        ctx.globalAlpha = Math.min((rawIntensity - 1.8) * 1.5, 1);
         ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
         ctx.restore();
     }
