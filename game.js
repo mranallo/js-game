@@ -3,7 +3,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 // Game constants
-const GAME_DURATION = 15; // seconds to complete level
+const GAME_DURATION = 72; // Song length in seconds
 const SCROLL_SPEED = 4;
 const GRAVITY = 0.4;
 const JUMP_FORCE_MIN = -10; // Short hop
@@ -11,6 +11,10 @@ const JUMP_FORCE_MAX = -17; // Full jump
 const JUMP_HOLD_TIME = 150; // ms to reach full jump
 const GROUND_Y = canvas.height - 80;
 const PLAYER_SIZE = 50;
+
+// Audio system
+const music = new Audio('music.mp3');
+music.loop = false;
 
 // Jump state
 let isHoldingJump = false;
@@ -49,6 +53,84 @@ let particles = [];
 // Fireworks for win screen
 let fireworks = [];
 let fireworkParticles = [];
+
+// Dynamic background elements
+let bgShapes = [];
+let bgStripes = [];
+
+// Color palettes that transition through the level
+const colorPalettes = [
+    { bg: '#1a0a2e', accent: '#790ECB', shapes: ['#ff1744', '#790ECB', '#ff6090'] },
+    { bg: '#0d1b2a', accent: '#00bcd4', shapes: ['#00bcd4', '#00ff88', '#790ECB'] },
+    { bg: '#2d132c', accent: '#ff6090', shapes: ['#ff1744', '#ffeb3b', '#ff6090'] },
+    { bg: '#0a0a0f', accent: '#00ff88', shapes: ['#00ff88', '#790ECB', '#00bcd4'] }
+];
+
+// Generate background elements
+function generateBackground() {
+    bgShapes = [];
+    bgStripes = [];
+    
+    // Generate vertical stripes (like in Just Shapes and Beats)
+    const stripeCount = 8;
+    for (let i = 0; i < stripeCount; i++) {
+        bgStripes.push({
+            x: (canvas.width / stripeCount) * i,
+            width: canvas.width / stripeCount,
+            offset: Math.random() * 100,
+            speed: 0.5 + Math.random() * 0.5
+        });
+    }
+    
+    // Generate floating shapes across the level
+    const shapeCount = 80;
+    for (let i = 0; i < shapeCount; i++) {
+        const shapeType = Math.floor(Math.random() * 4); // 0: circle, 1: square, 2: triangle, 3: diamond
+        bgShapes.push({
+            x: Math.random() * levelEndX * 1.2,
+            y: Math.random() * (GROUND_Y - 100) + 50,
+            size: 20 + Math.random() * 60,
+            type: shapeType,
+            rotation: Math.random() * Math.PI * 2,
+            rotationSpeed: (Math.random() - 0.5) * 0.02,
+            floatOffset: Math.random() * Math.PI * 2,
+            floatSpeed: 0.5 + Math.random() * 1.5,
+            floatAmount: 5 + Math.random() * 15,
+            layer: Math.floor(Math.random() * 3), // 0: far, 1: mid, 2: near
+            colorIndex: Math.floor(Math.random() * 3)
+        });
+    }
+}
+
+// Get current color palette based on progress
+function getCurrentPalette() {
+    const progress = player.x / levelEndX;
+    const paletteIndex = Math.min(Math.floor(progress * colorPalettes.length), colorPalettes.length - 1);
+    const nextIndex = Math.min(paletteIndex + 1, colorPalettes.length - 1);
+    const blend = (progress * colorPalettes.length) % 1;
+    
+    return {
+        current: colorPalettes[paletteIndex],
+        next: colorPalettes[nextIndex],
+        blend: blend
+    };
+}
+
+// Interpolate between two hex colors
+function lerpColor(color1, color2, t) {
+    const r1 = parseInt(color1.slice(1, 3), 16);
+    const g1 = parseInt(color1.slice(3, 5), 16);
+    const b1 = parseInt(color1.slice(5, 7), 16);
+    const r2 = parseInt(color2.slice(1, 3), 16);
+    const g2 = parseInt(color2.slice(3, 5), 16);
+    const b2 = parseInt(color2.slice(5, 7), 16);
+    
+    const r = Math.round(r1 + (r2 - r1) * t);
+    const g = Math.round(g1 + (g2 - g1) * t);
+    const b = Math.round(b1 + (b2 - b1) * t);
+    
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
 
 // Generate level spikes
 function generateLevel() {
@@ -157,21 +239,99 @@ function drawGround() {
     ctx.restore();
 }
 
-// Draw background with parallax
+// Draw background with dynamic elements
 function drawBackground() {
-    ctx.fillStyle = '#0a0a0f';
+    const palette = getCurrentPalette();
+    const bgColor = lerpColor(palette.current.bg, palette.next.bg, palette.blend);
+    
+    // Fill background with transitioning color
+    ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Parallax stars/dots
-    ctx.fillStyle = 'rgba(121, 14, 203, 0.5)';
-    const starOffset = cameraX * 0.2;
-    for (let i = 0; i < 50; i++) {
-        const x = ((i * 73 + 20) % (canvas.width + 200)) - (starOffset % (canvas.width + 200));
-        const y = (i * 37 + 10) % (GROUND_Y - 50);
-        const size = (i % 3) + 1;
+    // Draw vertical stripes (darker bands)
+    for (const stripe of bgStripes) {
+        const pulseAmount = Math.sin(gameTime * stripe.speed + stripe.offset) * 0.1;
+        ctx.fillStyle = `rgba(0, 0, 0, ${0.15 + pulseAmount})`;
+        ctx.fillRect(stripe.x, 0, stripe.width, canvas.height);
+    }
+    
+    // Draw floating shapes by layer (far to near)
+    for (let layer = 0; layer < 3; layer++) {
+        const parallaxSpeed = 0.3 + layer * 0.25;
+        const alpha = 0.15 + layer * 0.1;
+        
+        for (const shape of bgShapes) {
+            if (shape.layer !== layer) continue;
+            
+            const screenX = shape.x - cameraX * parallaxSpeed;
+            
+            // Skip if off screen
+            if (screenX < -shape.size * 2 || screenX > canvas.width + shape.size * 2) continue;
+            
+            // Floating animation
+            const floatY = shape.y + Math.sin(gameTime * shape.floatSpeed + shape.floatOffset) * shape.floatAmount;
+            
+            // Update rotation
+            shape.rotation += shape.rotationSpeed;
+            
+            // Get color from current palette
+            const shapeColor = palette.current.shapes[shape.colorIndex];
+            
+            ctx.save();
+            ctx.translate(screenX, floatY);
+            ctx.rotate(shape.rotation);
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = shapeColor;
+            
+            // Draw shape based on type
+            switch (shape.type) {
+                case 0: // Circle
+                    ctx.beginPath();
+                    ctx.arc(0, 0, shape.size / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                case 1: // Square
+                    ctx.fillRect(-shape.size / 2, -shape.size / 2, shape.size, shape.size);
+                    break;
+                case 2: // Triangle
+                    ctx.beginPath();
+                    ctx.moveTo(0, -shape.size / 2);
+                    ctx.lineTo(shape.size / 2, shape.size / 2);
+                    ctx.lineTo(-shape.size / 2, shape.size / 2);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+                case 3: // Diamond
+                    ctx.beginPath();
+                    ctx.moveTo(0, -shape.size / 2);
+                    ctx.lineTo(shape.size / 2, 0);
+                    ctx.lineTo(0, shape.size / 2);
+                    ctx.lineTo(-shape.size / 2, 0);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+            }
+            
+            ctx.restore();
+        }
+    }
+    
+    // Add some pulsing circles in the background (like in JSAB)
+    const pulseTime = gameTime * 2;
+    const accentColor = lerpColor(palette.current.accent, palette.next.accent, palette.blend);
+    for (let i = 0; i < 3; i++) {
+        const pulse = Math.sin(pulseTime + i * 2) * 0.5 + 0.5;
+        const size = 100 + pulse * 150 + i * 80;
+        const x = (canvas.width * (i + 1) / 4) + Math.sin(gameTime * 0.5 + i) * 50;
+        const y = GROUND_Y - 150 + Math.cos(gameTime * 0.3 + i) * 30;
+        
+        ctx.save();
+        ctx.globalAlpha = 0.08 - i * 0.02;
+        ctx.fillStyle = accentColor;
         ctx.beginPath();
         ctx.arc(x, y, size, 0, Math.PI * 2);
         ctx.fill();
+        ctx.restore();
     }
 }
 
@@ -413,8 +573,13 @@ function startGame() {
     player.isJumping = false;
     player.isOnGround = true;
     
-    // Generate level
+    // Generate level and background
     generateLevel();
+    generateBackground();
+    
+    // Start music
+    music.currentTime = 0;
+    music.play().catch(e => console.log('Audio play failed:', e));
     
     // Hide overlays
     document.getElementById('startScreen').classList.add('hidden');
@@ -429,6 +594,7 @@ function startGame() {
 // Game over
 function gameOver() {
     gameState = 'gameover';
+    music.pause();
     createParticles(player.x, player.y + player.height / 2, '#ff1744', 30);
     const percent = Math.floor((player.x / levelEndX) * 100);
     document.getElementById('gameOverPercent').textContent = `${percent}%`;
@@ -438,6 +604,7 @@ function gameOver() {
 // Win game
 function winGame() {
     gameState = 'win';
+    music.pause();
     fireworks = [];
     fireworkParticles = [];
     winLoop();
