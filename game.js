@@ -156,7 +156,11 @@ const player = {
     height: PLAYER_SIZE,
     velocityY: 0,
     isJumping: false,
-    isOnGround: true
+    isOnGround: true,
+    // Squash/stretch for bouncy animation
+    scaleX: 1,
+    scaleY: 1,
+    landingSquash: 0 // How much to squash on landing (0-1)
 };
 
 // Kiro logo image
@@ -319,12 +323,26 @@ function drawPlayer() {
     ctx.shadowColor = '#790ECB';
     ctx.shadowBlur = 20;
     
+    // Calculate scaled dimensions
+    const scaledWidth = player.width * player.scaleX;
+    const scaledHeight = player.height * player.scaleY;
+    
+    // Offset to keep player grounded (scale from bottom center)
+    const offsetX = (player.width - scaledWidth) / 2;
+    const offsetY = player.height - scaledHeight;
+    
     if (logoLoaded) {
-        ctx.drawImage(kiroLogo, screenX, player.y, player.width, player.height);
+        ctx.drawImage(
+            kiroLogo, 
+            screenX + offsetX, 
+            player.y + offsetY, 
+            scaledWidth, 
+            scaledHeight
+        );
     } else {
         // Fallback: draw a purple square
         ctx.fillStyle = '#790ECB';
-        ctx.fillRect(screenX, player.y, player.width, player.height);
+        ctx.fillRect(screenX + offsetX, player.y + offsetY, scaledWidth, scaledHeight);
     }
     
     ctx.restore();
@@ -810,6 +828,9 @@ function updatePlayer() {
         player.velocityY = -5; // Cut upward momentum
     }
     
+    // Store previous velocity for landing detection
+    const prevVelocityY = player.velocityY;
+    
     // Apply gravity
     player.velocityY += GRAVITY;
     player.y += player.velocityY;
@@ -817,11 +838,40 @@ function updatePlayer() {
     // Ground collision
     if (player.y >= GROUND_Y - player.height) {
         player.y = GROUND_Y - player.height;
+        
+        // Trigger landing squash based on fall speed
+        if (prevVelocityY > 5) {
+            player.landingSquash = Math.min(0.4, prevVelocityY * 0.03);
+        }
+        
         player.velocityY = 0;
         player.isOnGround = true;
         player.isJumping = false;
     } else {
         player.isOnGround = false;
+    }
+    
+    // Update squash/stretch animation
+    // When jumping up: stretch vertically
+    // When falling: stretch vertically  
+    // When landing: squash (wide and short)
+    // Smoothly return to normal
+    
+    if (player.landingSquash > 0) {
+        // Landing squash - wide and short
+        player.scaleX = 1 + player.landingSquash;
+        player.scaleY = 1 - player.landingSquash * 0.8;
+        player.landingSquash *= 0.8; // Decay the squash
+        if (player.landingSquash < 0.01) player.landingSquash = 0;
+    } else if (!player.isOnGround) {
+        // In air - stretch based on velocity
+        const stretchAmount = Math.abs(player.velocityY) * 0.015;
+        player.scaleX = 1 - stretchAmount * 0.5;
+        player.scaleY = 1 + stretchAmount;
+    } else {
+        // On ground - return to normal with slight bounce
+        player.scaleX += (1 - player.scaleX) * 0.3;
+        player.scaleY += (1 - player.scaleY) * 0.3;
     }
     
     // Move player forward with camera
