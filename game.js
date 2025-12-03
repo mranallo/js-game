@@ -36,26 +36,31 @@ let timelineLoaded = false;
 
 // Load the pre-analyzed music timeline
 fetch('music_timeline.json')
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to load timeline');
+        return response.json();
+    })
     .then(data => {
-        musicTimeline = data;
-        timelineLoaded = true;
-        console.log(`Music timeline loaded: ${data.duration}s, ${data.tempo} BPM, ${data.beatCount} beats, ${data.drops?.length || 0} drops`);
+        if (data && data.bigDrops && data.timeline) {
+            musicTimeline = data;
+            timelineLoaded = true;
+        }
     })
     .catch(e => {
-        console.log('No music timeline found, using simulated beats');
+        musicTimeline = null;
         timelineLoaded = false;
     });
 
 // Update audio levels from timeline or simulate
 function updateAudioLevels() {
-    // Decay drop intensity
-    dropIntensity = Math.max(0, dropIntensity - 0.02);
-    bigDropIntensity = Math.max(0, bigDropIntensity - 0.006); // Even slower decay for big drop
-    screenShake = Math.max(0, screenShake - 0.04);
-    flashScreen = Math.max(0, flashScreen - 0.08); // Quick flash decay
-    
-    const currentTime = music.currentTime;
+    try {
+        // Decay drop intensity
+        dropIntensity = Math.max(0, dropIntensity - 0.02);
+        bigDropIntensity = Math.max(0, bigDropIntensity - 0.006);
+        screenShake = Math.max(0, screenShake - 0.04);
+        flashScreen = Math.max(0, flashScreen - 0.08);
+        
+        const currentTime = music.currentTime || 0;
     
     // Check for BIG DROPS from the analyzed music timeline
     if (timelineLoaded && musicTimeline && musicTimeline.bigDrops) {
@@ -134,6 +139,12 @@ function updateAudioLevels() {
             dropIntensity = 1.0;
             lastDropTime = Math.floor(gameTime);
         }
+    }
+    } catch (e) {
+        // Silently handle any audio level errors to prevent game crash
+        bassLevel = 0;
+        midLevel = 0;
+        highLevel = 0;
     }
 }
 
@@ -568,11 +579,12 @@ function drawBackground() {
         ctx.save();
         ctx.strokeStyle = dropColor;
         ctx.lineWidth = 3;
+        const clampedDrop = Math.min(dropIntensity, 1); // Clamp for ring calculation
         for (let ring = 0; ring < 4; ring++) {
-            const ringProgress = (1 - dropIntensity) + ring * 0.15;
-            if (ringProgress < 1) {
+            const ringProgress = (1 - clampedDrop) + ring * 0.15;
+            if (ringProgress > 0 && ringProgress < 1) {
                 ctx.globalAlpha = (1 - ringProgress) * 0.5;
-                const ringSize = ringProgress * 400;
+                const ringSize = Math.max(0, ringProgress * 400);
                 ctx.beginPath();
                 ctx.arc(canvas.width / 2, GROUND_Y / 2, ringSize, 0, Math.PI * 2);
                 ctx.stroke();
@@ -597,16 +609,17 @@ function drawBackground() {
 
 // Draw extra intense effects for the BIG DROP at 30 seconds
 function drawBigDropEffects() {
-    // Clamp intensity to prevent gradient overflow crashes
-    const intensity = Math.min(bigDropIntensity, 1.5);
-    const rawIntensity = bigDropIntensity; // Keep raw for text check
-    
-    // White flash at the start of the drop
-    if (flashScreen > 0) {
-        ctx.save();
-        ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(flashScreen * 0.7, 1)})`;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
+    try {
+        // Clamp intensity to prevent gradient overflow crashes
+        const intensity = Math.min(bigDropIntensity || 0, 1.5);
+        const rawIntensity = bigDropIntensity || 0;
+        
+        // White flash at the start of the drop
+        if (flashScreen > 0) {
+            ctx.save();
+            ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(flashScreen * 0.7, 1)})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
     }
     
     // 1. Massive center burst
@@ -711,6 +724,10 @@ function drawBigDropEffects() {
         ctx.lineWidth = Math.min(20 * rawIntensity, 50);
         ctx.globalAlpha = Math.min((rawIntensity - 1.8) * 1.5, 1);
         ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+        ctx.restore();
+    }
+    } catch (e) {
+        // Silently handle any rendering errors
         ctx.restore();
     }
 }
