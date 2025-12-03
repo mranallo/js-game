@@ -12,9 +12,82 @@ const JUMP_HOLD_TIME = 150; // ms to reach full jump
 const GROUND_Y = canvas.height - 80;
 const PLAYER_SIZE = 50;
 
-// Audio system
+// Audio system - simple and reliable
 const music = new Audio('music.mp3');
 music.loop = false;
+
+// Beat reactive values
+let bassLevel = 0;
+let midLevel = 0;
+let highLevel = 0;
+let beatPulse = 0;
+let dropActive = false;
+let dropIntensity = 0;
+let lastDropTime = -10;
+
+// Music timeline data (loaded from JSON)
+let musicTimeline = null;
+let timelineLoaded = false;
+
+// Load the pre-analyzed music timeline
+fetch('music_timeline.json')
+    .then(response => response.json())
+    .then(data => {
+        musicTimeline = data;
+        timelineLoaded = true;
+        console.log(`Music timeline loaded: ${data.duration}s, ${data.tempo} BPM, ${data.beatCount} beats, ${data.drops?.length || 0} drops`);
+    })
+    .catch(e => {
+        console.log('No music timeline found, using simulated beats');
+        timelineLoaded = false;
+    });
+
+// Update audio levels from timeline or simulate
+function updateAudioLevels() {
+    // Decay drop intensity
+    dropIntensity = Math.max(0, dropIntensity - 0.02);
+    
+    if (timelineLoaded && musicTimeline && musicTimeline.timeline) {
+        // Use pre-analyzed timeline data
+        const currentTime = music.currentTime;
+        
+        // Find the closest timeline entry (50ms intervals)
+        const index = Math.floor(currentTime / 0.05);
+        const entry = musicTimeline.timeline[Math.min(index, musicTimeline.timeline.length - 1)];
+        
+        if (entry) {
+            bassLevel = entry.bass;
+            midLevel = entry.mid;
+            highLevel = entry.high;
+            
+            // Create beat pulse from onset strength and beat markers
+            const newPulse = entry.beat ? 1.0 : entry.onset * 0.8;
+            beatPulse = Math.max(beatPulse * 0.85, newPulse);
+            
+            // Check for drop
+            if (entry.drop && (currentTime - lastDropTime) > 1.5) {
+                dropActive = true;
+                dropIntensity = 1.0;
+                lastDropTime = currentTime;
+            }
+        }
+    } else {
+        // Fallback: Simulate beats at ~120 BPM
+        const beatTime = gameTime * 2;
+        const beatPhase = beatTime % 1;
+        
+        bassLevel = Math.pow(Math.max(0, 1 - beatPhase * 4), 2);
+        midLevel = Math.pow(Math.max(0, 1 - ((beatPhase + 0.25) % 1) * 3), 2) * 0.7;
+        highLevel = Math.sin(gameTime * 8) * 0.3 + 0.3;
+        beatPulse = Math.max(beatPulse * 0.9, bassLevel);
+        
+        // Simulate drops every ~15 seconds
+        if (Math.floor(gameTime) % 15 === 0 && Math.floor(gameTime) !== Math.floor(lastDropTime)) {
+            dropIntensity = 1.0;
+            lastDropTime = Math.floor(gameTime);
+        }
+    }
+}
 
 // Jump state
 let isHoldingJump = false;
@@ -137,7 +210,7 @@ function generateLevel() {
     spikes = [];
     const startX = 150; // Player start position
     levelEndX = startX + SCROLL_SPEED * GAME_DURATION * 60; // End position
-    const obstacleEndX = startX + (levelEndX - startX) * 0.7; // Obstacles cover 70% of course
+    const obstacleEndX = levelEndX * 0.9; // Obstacles cover 90% of course
     let x = 500; // Start first spike after some distance
     
     while (x < obstacleEndX) {
@@ -241,6 +314,9 @@ function drawGround() {
 
 // Draw background with dynamic elements
 function drawBackground() {
+    // Update audio levels for beat reactivity
+    updateAudioLevels();
+    
     const palette = getCurrentPalette();
     const bgColor = lerpColor(palette.current.bg, palette.next.bg, palette.blend);
     
@@ -248,17 +324,38 @@ function drawBackground() {
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw vertical stripes (darker bands)
-    for (const stripe of bgStripes) {
-        const pulseAmount = Math.sin(gameTime * stripe.speed + stripe.offset) * 0.1;
-        ctx.fillStyle = `rgba(0, 0, 0, ${0.15 + pulseAmount})`;
-        ctx.fillRect(stripe.x, 0, stripe.width, canvas.height);
+    // Draw vertical stripes (darker bands) - subtle pulse with mid frequencies
+    for (let i = 0; i < bgStripes.length; i++) {
+        const stripe = bgStripes[i];
+        const pulseAmount = Math.sin(gameTime * stripe.speed + stripe.offset) * 0.05;
+        const beatBoost = midLevel * 0.08;
+        // Alternate stripe widths on beats
+        const widthMod = (i % 2 === 0) ? (1 + bassLevel * 0.1) : (1 - bassLevel * 0.05);
+        ctx.fillStyle = `rgba(0, 0, 0, ${0.12 + pulseAmount + beatBoost})`;
+        ctx.fillRect(stripe.x, 0, stripe.width * widthMod, canvas.height);
     }
+    
+    // Draw wave lines across the screen (react to high frequencies)
+    ctx.save();
+    ctx.strokeStyle = lerpColor(palette.current.accent, palette.next.accent, palette.blend);
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.15 + highLevel * 0.1;
+    for (let wave = 0; wave < 3; wave++) {
+        ctx.beginPath();
+        const baseY = 100 + wave * 80;
+        for (let x = 0; x < canvas.width; x += 5) {
+            const waveY = baseY + Math.sin((x + cameraX * 0.3 + gameTime * 50) * 0.02 + wave) * (20 + highLevel * 30);
+            if (x === 0) ctx.moveTo(x, waveY);
+            else ctx.lineTo(x, waveY);
+        }
+        ctx.stroke();
+    }
+    ctx.restore();
     
     // Draw floating shapes by layer (far to near)
     for (let layer = 0; layer < 3; layer++) {
         const parallaxSpeed = 0.3 + layer * 0.25;
-        const alpha = 0.15 + layer * 0.1;
+        const alpha = 0.12 + layer * 0.08;
         
         for (const shape of bgShapes) {
             if (shape.layer !== layer) continue;
@@ -268,18 +365,22 @@ function drawBackground() {
             // Skip if off screen
             if (screenX < -shape.size * 2 || screenX > canvas.width + shape.size * 2) continue;
             
-            // Floating animation
-            const floatY = shape.y + Math.sin(gameTime * shape.floatSpeed + shape.floatOffset) * shape.floatAmount;
+            // Floating animation - more movement on beats
+            const floatY = shape.y + Math.sin(gameTime * shape.floatSpeed + shape.floatOffset) * (shape.floatAmount + bassLevel * 10);
             
-            // Update rotation
-            shape.rotation += shape.rotationSpeed;
+            // Update rotation - gentle speed up on beats
+            shape.rotation += shape.rotationSpeed * (1 + beatPulse * 0.5);
             
             // Get color from current palette
             const shapeColor = palette.current.shapes[shape.colorIndex];
             
+            // Subtle scale with bass
+            const beatScale = 1 + bassLevel * 0.15;
+            
             ctx.save();
             ctx.translate(screenX, floatY);
             ctx.rotate(shape.rotation);
+            ctx.scale(beatScale, beatScale);
             ctx.globalAlpha = alpha;
             ctx.fillStyle = shapeColor;
             
@@ -316,21 +417,114 @@ function drawBackground() {
         }
     }
     
-    // Add some pulsing circles in the background (like in JSAB)
+    // Pulsing circles - smoother, less intense
     const pulseTime = gameTime * 2;
     const accentColor = lerpColor(palette.current.accent, palette.next.accent, palette.blend);
     for (let i = 0; i < 3; i++) {
         const pulse = Math.sin(pulseTime + i * 2) * 0.5 + 0.5;
-        const size = 100 + pulse * 150 + i * 80;
+        // Gentler bass expansion
+        const bassBoost = bassLevel * 50 * (3 - i);
+        const size = 100 + pulse * 100 + i * 60 + bassBoost;
         const x = (canvas.width * (i + 1) / 4) + Math.sin(gameTime * 0.5 + i) * 50;
         const y = GROUND_Y - 150 + Math.cos(gameTime * 0.3 + i) * 30;
         
         ctx.save();
-        ctx.globalAlpha = 0.08 - i * 0.02;
+        ctx.globalAlpha = 0.06 - i * 0.015;
         ctx.fillStyle = accentColor;
         ctx.beginPath();
         ctx.arc(x, y, size, 0, Math.PI * 2);
         ctx.fill();
+        ctx.restore();
+    }
+    
+    // Draw ring pulses on strong beats
+    if (beatPulse > 0.6) {
+        ctx.save();
+        ctx.strokeStyle = accentColor;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = (beatPulse - 0.6) * 0.3;
+        const ringSize = (1 - (beatPulse - 0.6) / 0.4) * 200 + 50;
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, GROUND_Y / 2, ringSize, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+    
+    // DROP EFFECTS - dramatic visuals on bass drops
+    if (dropIntensity > 0) {
+        const dropColor = '#ff1744';
+        const dropColor2 = palette.current.accent;
+        
+        // 1. Radiating laser beams from center bottom
+        ctx.save();
+        ctx.globalAlpha = dropIntensity * 0.4;
+        const beamCount = 12;
+        const beamWidth = 8 + dropIntensity * 15;
+        for (let i = 0; i < beamCount; i++) {
+            const angle = (i / beamCount) * Math.PI - Math.PI / 2;
+            const spread = 0.8; // How wide the fan spreads
+            const beamAngle = angle * spread;
+            
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height + 50);
+            ctx.rotate(beamAngle);
+            
+            // Gradient beam
+            const gradient = ctx.createLinearGradient(0, 0, 0, -canvas.height * 1.5);
+            gradient.addColorStop(0, dropColor);
+            gradient.addColorStop(0.5, dropColor2);
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(-beamWidth / 2, 0, beamWidth, -canvas.height * 1.5);
+            ctx.restore();
+        }
+        ctx.restore();
+        
+        // 2. Large rising shapes from bottom
+        ctx.save();
+        ctx.globalAlpha = dropIntensity * 0.3;
+        const riseAmount = (1 - dropIntensity) * 200;
+        
+        // Big circle rising from bottom left
+        ctx.fillStyle = dropColor;
+        ctx.beginPath();
+        ctx.arc(canvas.width * 0.2, canvas.height - riseAmount + 100, 150 + dropIntensity * 50, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Big circle rising from bottom right
+        ctx.fillStyle = dropColor2;
+        ctx.beginPath();
+        ctx.arc(canvas.width * 0.8, canvas.height - riseAmount + 150, 120 + dropIntensity * 40, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        
+        // 3. Concentric expanding rings
+        ctx.save();
+        ctx.strokeStyle = dropColor;
+        ctx.lineWidth = 3;
+        for (let ring = 0; ring < 4; ring++) {
+            const ringProgress = (1 - dropIntensity) + ring * 0.15;
+            if (ringProgress < 1) {
+                ctx.globalAlpha = (1 - ringProgress) * 0.5;
+                const ringSize = ringProgress * 400;
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, GROUND_Y / 2, ringSize, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+        ctx.restore();
+        
+        // 4. Screen edge glow
+        ctx.save();
+        const edgeGradient = ctx.createRadialGradient(
+            canvas.width / 2, canvas.height / 2, canvas.width * 0.3,
+            canvas.width / 2, canvas.height / 2, canvas.width * 0.8
+        );
+        edgeGradient.addColorStop(0, 'transparent');
+        edgeGradient.addColorStop(1, dropColor);
+        ctx.globalAlpha = dropIntensity * 0.2;
+        ctx.fillStyle = edgeGradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
     }
 }
@@ -481,7 +675,10 @@ function updateCamera() {
 
 // Main game loop
 function gameLoop(timestamp) {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || !gameLoopRunning) {
+        gameLoopRunning = false;
+        return;
+    }
     
     // Calculate delta time
     const deltaTime = (timestamp - lastTime) / 1000;
@@ -508,8 +705,8 @@ function gameLoop(timestamp) {
         }
     }
     
-    // Check if in victory lap (last 30% of level - no obstacles)
-    const victoryLapStart = levelEndX * 0.7;
+    // Check if in victory lap (last 10% of level - no obstacles)
+    const victoryLapStart = levelEndX * 0.9;
     const inVictoryLap = player.x >= victoryLapStart;
     
     // Launch fireworks during victory lap
@@ -557,8 +754,19 @@ function releaseJump() {
     isHoldingJump = false;
 }
 
+// Track if game loop is already running
+let gameLoopRunning = false;
+
 // Start game
 function startGame() {
+    // Prevent multiple game loops from running
+    if (gameLoopRunning) {
+        gameLoopRunning = false;
+        // Wait a frame for the old loop to stop
+        requestAnimationFrame(() => startGame());
+        return;
+    }
+    
     gameState = 'playing';
     gameTime = 0;
     cameraX = 0;
@@ -566,20 +774,28 @@ function startGame() {
     fireworks = [];
     fireworkParticles = [];
     
+    // Reset beat levels
+    bassLevel = 0;
+    midLevel = 0;
+    highLevel = 0;
+    beatPulse = 0;
+    
     // Reset player
     player.x = 150;
     player.y = GROUND_Y - player.height;
     player.velocityY = 0;
     player.isJumping = false;
     player.isOnGround = true;
+    isHoldingJump = false;
     
     // Generate level and background
     generateLevel();
     generateBackground();
     
-    // Start music
+    // Start music - simple and reliable
+    music.pause();
     music.currentTime = 0;
-    music.play().catch(e => console.log('Audio play failed:', e));
+    music.play();
     
     // Hide overlays
     document.getElementById('startScreen').classList.add('hidden');
@@ -588,12 +804,14 @@ function startGame() {
     
     // Start game loop
     lastTime = performance.now();
+    gameLoopRunning = true;
     requestAnimationFrame(gameLoop);
 }
 
 // Game over
 function gameOver() {
     gameState = 'gameover';
+    gameLoopRunning = false;
     music.pause();
     createParticles(player.x, player.y + player.height / 2, '#ff1744', 30);
     const percent = Math.floor((player.x / levelEndX) * 100);
@@ -604,6 +822,7 @@ function gameOver() {
 // Win game
 function winGame() {
     gameState = 'win';
+    gameLoopRunning = false;
     music.pause();
     fireworks = [];
     fireworkParticles = [];
