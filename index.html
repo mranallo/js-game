@@ -96,6 +96,33 @@
             box-shadow: 0 0 20px rgba(121, 14, 203, 0.6);
         }
         
+        .mode-buttons {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn-endless {
+            background: linear-gradient(135deg, #790ECB, #ff1744);
+        }
+        
+        .btn-endless:hover {
+            background: linear-gradient(135deg, #9b3ee0, #ff6090);
+        }
+        
+        .new-high-score {
+            color: #00ff88;
+            font-size: 24px;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.8);
+            animation: pulse 0.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+        
         .hidden {
             display: none !important;
         }
@@ -113,7 +140,10 @@
             <h1>Just Shapes and Kiro</h1>
             <p>Dodge the spikes, reach the end!</p>
             <p class="subtitle">Jump over the spikes and ride the beat!</p>
-            <button class="btn" onclick="startGame()">Start Game</button>
+            <div class="mode-buttons">
+                <button class="btn" onclick="startStandardMode()">Standard Mode</button>
+                <button class="btn btn-endless" onclick="startEndlessMode()">Endless Mode</button>
+            </div>
         </div>
         
         <div id="gameOverScreen" class="overlay hidden">
@@ -127,6 +157,15 @@
             <h1>Level Complete!</h1>
             <p>You made it through!</p>
             <button class="btn" onclick="restartGame()">Play Again</button>
+        </div>
+        
+        <div id="endlessGameOverScreen" class="overlay hidden">
+            <h1>Game Over!</h1>
+            <p id="newHighScoreIndicator" class="new-high-score hidden">🎉 New High Score! 🎉</p>
+            <p>Survival Time</p>
+            <p id="endlessSurvivalTime" style="font-size: 48px; color: #790ECB; margin: 10px 0;">00:00</p>
+            <p>High Score: <span id="endlessHighScoreDisplay">00:00</span></p>
+            <button class="btn btn-endless" onclick="startEndlessMode()">Try Again</button>
         </div>
     </div>
     

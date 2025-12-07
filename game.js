@@ -2,6 +2,40 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// Game Mode enum
+const GameMode = {
+    STANDARD: 'standard',
+    ENDLESS: 'endless'
+};
+
+// Endless Mode configuration
+const ENDLESS_CONFIG = {
+    // Base difficulty
+    baseScrollSpeed: 4,
+    baseMinGap: 150,
+    baseMaxCluster: 3,
+    
+    // Scaling
+    speedIncrementPer30s: 0.5,
+    gapDecrementPer30s: 10,
+    clusterIncrementPer60s: 1,
+    
+    // Caps
+    maxScrollSpeed: 8,
+    minGap: 80,
+    maxClusterSize: 6,
+    
+    // Generation
+    generateAheadDistance: 1000,
+    cleanupBehindDistance: 500,
+    
+    // UI
+    difficultyIndicatorDuration: 2
+};
+
+// Local storage key for high score
+const ENDLESS_HIGH_SCORE_KEY = 'kiro_endless_high_score';
+
 // Game constants
 const GAME_DURATION = 72; // Song length in seconds
 const SCROLL_SPEED = 4;
@@ -15,6 +49,103 @@ const PLAYER_SIZE = 50;
 // Audio system - simple and reliable
 const music = new Audio('music.mp3');
 music.loop = false;
+
+// Endless Mode state variables
+let gameMode = GameMode.STANDARD;
+let survivalTime = 0;
+let currentDifficulty = null;
+let lastDifficultyLevel = 0;
+let difficultyIndicatorTime = 0;
+let endlessHighScore = 0;
+let lastGeneratedX = 0;
+
+/**
+ * Calculates difficulty parameters based on survival time
+ * @param {number} survivalTime - Time survived in seconds
+ * @returns {Object} Current difficulty parameters
+ */
+function calculateDifficulty(survivalTime) {
+    // Handle invalid input
+    if (survivalTime < 0 || isNaN(survivalTime) || survivalTime === undefined) {
+        survivalTime = 0;
+    }
+    
+    const level = Math.floor(survivalTime / 30) + 1;
+    
+    // Calculate scroll speed: base + (level-1) * increment, capped at max
+    const scrollSpeed = Math.min(
+        ENDLESS_CONFIG.baseScrollSpeed + (level - 1) * ENDLESS_CONFIG.speedIncrementPer30s,
+        ENDLESS_CONFIG.maxScrollSpeed
+    );
+    
+    // Calculate min gap: base - (level-1) * decrement, floored at min
+    const minGap = Math.max(
+        ENDLESS_CONFIG.baseMinGap - (level - 1) * ENDLESS_CONFIG.gapDecrementPer30s,
+        ENDLESS_CONFIG.minGap
+    );
+    
+    // Calculate max cluster size: base + floor(time/60), capped at max
+    const maxClusterSize = Math.min(
+        ENDLESS_CONFIG.baseMaxCluster + Math.floor(survivalTime / 60),
+        ENDLESS_CONFIG.maxClusterSize
+    );
+    
+    return {
+        scrollSpeed,
+        minGap,
+        maxClusterSize,
+        level
+    };
+}
+
+/**
+ * Generates obstacles ahead of the player position
+ */
+function generateObstaclesAhead() {
+    if (gameMode !== GameMode.ENDLESS) return;
+    
+    const generateAheadDistance = ENDLESS_CONFIG.generateAheadDistance;
+    const targetX = cameraX + canvas.width + generateAheadDistance;
+    
+    let currentX = lastGeneratedX > 0 ? lastGeneratedX : player.x + currentDifficulty.minGap;
+    
+    while (currentX < targetX) {
+        const clusterSize = Math.floor(Math.random() * currentDifficulty.maxClusterSize) + 1;
+        
+        for (let i = 0; i < clusterSize; i++) {
+            spikes.push({
+                x: currentX + (i * 40),
+                y: GROUND_Y,
+                width: 40,
+                height: 50
+            });
+        }
+        
+        const clusterWidth = clusterSize * 40;
+        const gap = currentDifficulty.minGap + Math.floor(Math.random() * 50);
+        currentX += clusterWidth + gap;
+    }
+    
+    lastGeneratedX = currentX;
+}
+
+/**
+ * Removes obstacles that are behind the camera
+ */
+function cleanupObstaclesBehind() {
+    if (gameMode !== GameMode.ENDLESS) return;
+    
+    const threshold = cameraX - ENDLESS_CONFIG.cleanupBehindDistance;
+    
+    let writeIndex = 0;
+    for (let i = 0; i < spikes.length; i++) {
+        if (spikes[i].x >= threshold) {
+            spikes[writeIndex] = spikes[i];
+            writeIndex++;
+        }
+    }
+    spikes.length = writeIndex;
+}
 
 // Beat reactive values
 let bassLevel = 0;
@@ -714,8 +845,10 @@ function drawBigDropEffects() {
     }
 }
 
-// Draw minimap at top of screen
+// Draw minimap at top of screen (Standard Mode only)
 function drawMinimap() {
+    if (gameMode === GameMode.ENDLESS) return; // Don't draw minimap in endless mode
+    
     const startX = 150; // Player start position
     const mapWidth = canvas.width - 100;
     const mapHeight = 20;
@@ -761,6 +894,55 @@ function drawMinimap() {
     ctx.lineTo(mapX + mapWidth - 12, mapY + 8);
     ctx.closePath();
     ctx.fill();
+    
+    ctx.restore();
+}
+
+// Draw survival timer for Endless Mode
+function drawSurvivalTimer() {
+    if (gameMode !== GameMode.ENDLESS) return;
+    
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    
+    // Timer background
+    ctx.fillStyle = 'rgba(30, 30, 40, 0.8)';
+    ctx.beginPath();
+    ctx.roundRect(canvas.width / 2 - 60, 10, 120, 40, 8);
+    ctx.fill();
+    
+    // Timer text with glow
+    ctx.shadowColor = '#790ECB';
+    ctx.shadowBlur = 15;
+    ctx.fillStyle = '#790ECB';
+    ctx.font = 'bold 28px "Segoe UI", Arial, sans-serif';
+    ctx.fillText(formatTime(survivalTime), canvas.width / 2, 16);
+    
+    ctx.restore();
+}
+
+// Show difficulty level indicator
+function showDifficultyIndicator(deltaTime) {
+    if (gameMode !== GameMode.ENDLESS) return;
+    if (difficultyIndicatorTime <= 0) return;
+    
+    difficultyIndicatorTime -= deltaTime;
+    
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Fade out effect
+    const alpha = Math.min(1, difficultyIndicatorTime / 0.5);
+    ctx.globalAlpha = alpha;
+    
+    // Level text with glow
+    ctx.shadowColor = '#00ff88';
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = '#00ff88';
+    ctx.font = 'bold 36px "Segoe UI", Arial, sans-serif';
+    ctx.fillText(`Level ${currentDifficulty.level}`, canvas.width / 2, 80);
     
     ctx.restore();
 }
@@ -825,7 +1007,10 @@ function checkCollision(spike) {
 }
 
 // Update player physics
-function updatePlayer() {
+function updatePlayer(deltaTime) {
+    // Frame-rate independent multiplier (normalize to 60 FPS)
+    const dtMultiplier = deltaTime * 60;
+    
     // Variable jump - cut jump short if spacebar released early
     if (player.isJumping && !isHoldingJump && player.velocityY < -5) {
         player.velocityY = -5; // Cut upward momentum
@@ -834,9 +1019,9 @@ function updatePlayer() {
     // Store previous velocity for landing detection
     const prevVelocityY = player.velocityY;
     
-    // Apply gravity
-    player.velocityY += GRAVITY;
-    player.y += player.velocityY;
+    // Apply gravity (frame-rate independent)
+    player.velocityY += GRAVITY * dtMultiplier;
+    player.y += player.velocityY * dtMultiplier;
     
     // Ground collision
     if (player.y >= GROUND_Y - player.height) {
@@ -877,8 +1062,11 @@ function updatePlayer() {
         player.scaleY += (1 - player.scaleY) * 0.3;
     }
     
-    // Move player forward with camera
-    player.x += SCROLL_SPEED;
+    // Move player forward with camera (use dynamic speed in Endless Mode, frame-rate independent)
+    const scrollSpeed = (gameMode === GameMode.ENDLESS && currentDifficulty) 
+        ? currentDifficulty.scrollSpeed 
+        : SCROLL_SPEED;
+    player.x += scrollSpeed * dtMultiplier;
 }
 
 // Update camera to follow player
@@ -904,12 +1092,28 @@ function gameLoop(timestamp) {
     // Update game time
     gameTime += deltaTime;
     
-    // Update game objects
-    updatePlayer();
+    // Endless Mode specific updates
+    if (gameMode === GameMode.ENDLESS) {
+        survivalTime += deltaTime;
+        currentDifficulty = calculateDifficulty(survivalTime);
+        
+        // Check for difficulty level change
+        if (currentDifficulty.level > lastDifficultyLevel) {
+            lastDifficultyLevel = currentDifficulty.level;
+            difficultyIndicatorTime = ENDLESS_CONFIG.difficultyIndicatorDuration;
+        }
+        
+        // Generate and cleanup obstacles
+        generateObstaclesAhead();
+        cleanupObstaclesBehind();
+    }
+    
+    // Update game objects (pass deltaTime for frame-rate independent movement)
+    updatePlayer(deltaTime);
     updateCamera();
     
-    // Check win condition (position-based - when player reaches the green flag)
-    if (player.x >= levelEndX) {
+    // Check win condition (Standard Mode only - when player reaches the green flag)
+    if (gameMode === GameMode.STANDARD && player.x >= levelEndX) {
         winGame();
         return;
     }
@@ -922,9 +1126,9 @@ function gameLoop(timestamp) {
         }
     }
     
-    // Check if in victory lap (last 10% of level - no obstacles)
+    // Check if in victory lap (last 10% of level - no obstacles) - Standard Mode only
     const victoryLapStart = levelEndX * 0.9;
-    const inVictoryLap = player.x >= victoryLapStart;
+    const inVictoryLap = gameMode === GameMode.STANDARD && player.x >= victoryLapStart;
     
     // Launch fireworks during victory lap
     if (inVictoryLap && Math.random() < 0.1) {
@@ -964,7 +1168,11 @@ function gameLoop(timestamp) {
     
     // Restore from screen shake
     ctx.restore();
+    
+    // Draw HUD elements
     drawMinimap();
+    drawSurvivalTimer();
+    showDifficultyIndicator(deltaTime);
     
     // Continue loop
     requestAnimationFrame(gameLoop);
@@ -989,6 +1197,60 @@ function releaseJump() {
 
 // Track if game loop is already running
 let gameLoopRunning = false;
+
+// Format time as MM:SS
+function formatTime(seconds) {
+    if (seconds < 0 || isNaN(seconds) || seconds === undefined) {
+        seconds = 0;
+    }
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Get high score from localStorage
+function getHighScore() {
+    try {
+        const stored = localStorage.getItem(ENDLESS_HIGH_SCORE_KEY);
+        return stored ? parseFloat(stored) : 0;
+    } catch (e) {
+        return 0;
+    }
+}
+
+// Save high score to localStorage
+function saveHighScore(score) {
+    try {
+        const currentHighScore = getHighScore();
+        if (score > currentHighScore) {
+            localStorage.setItem(ENDLESS_HIGH_SCORE_KEY, score.toString());
+            return true;
+        }
+        return false;
+    } catch (e) {
+        return false;
+    }
+}
+
+// Start Standard Mode
+function startStandardMode() {
+    gameMode = GameMode.STANDARD;
+    music.loop = false;
+    startGame();
+}
+
+// Start Endless Mode
+function startEndlessMode() {
+    gameMode = GameMode.ENDLESS;
+    music.loop = true;
+    survivalTime = 0;
+    currentDifficulty = calculateDifficulty(0);
+    lastDifficultyLevel = 1;
+    difficultyIndicatorTime = 0;
+    endlessHighScore = getHighScore();
+    lastGeneratedX = 0;
+    startGame();
+}
 
 // Start game
 function startGame() {
@@ -1027,8 +1289,14 @@ function startGame() {
     player.isOnGround = true;
     isHoldingJump = false;
     
-    // Generate level and background
-    generateLevel();
+    // Generate level and background based on mode
+    if (gameMode === GameMode.ENDLESS) {
+        spikes = [];
+        levelEndX = Infinity; // No end in endless mode
+        lastGeneratedX = player.x + 200;
+    } else {
+        generateLevel();
+    }
     generateBackground();
     
     // Start music - simple and reliable
@@ -1040,6 +1308,7 @@ function startGame() {
     document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('gameOverScreen').classList.add('hidden');
     document.getElementById('winScreen').classList.add('hidden');
+    document.getElementById('endlessGameOverScreen').classList.add('hidden');
     
     // Start game loop
     lastTime = performance.now();
@@ -1053,9 +1322,29 @@ function gameOver() {
     gameLoopRunning = false;
     music.pause();
     createParticles(player.x, player.y + player.height / 2, '#ff1744', 30);
-    const percent = Math.floor((player.x / levelEndX) * 100);
-    document.getElementById('gameOverPercent').textContent = `${percent}%`;
-    document.getElementById('gameOverScreen').classList.remove('hidden');
+    
+    if (gameMode === GameMode.ENDLESS) {
+        // Endless Mode game over
+        const isNewHighScore = saveHighScore(survivalTime);
+        endlessHighScore = getHighScore();
+        
+        document.getElementById('endlessSurvivalTime').textContent = formatTime(survivalTime);
+        document.getElementById('endlessHighScoreDisplay').textContent = formatTime(endlessHighScore);
+        
+        const newHighScoreIndicator = document.getElementById('newHighScoreIndicator');
+        if (isNewHighScore) {
+            newHighScoreIndicator.classList.remove('hidden');
+        } else {
+            newHighScoreIndicator.classList.add('hidden');
+        }
+        
+        document.getElementById('endlessGameOverScreen').classList.remove('hidden');
+    } else {
+        // Standard Mode game over
+        const percent = Math.floor((player.x / levelEndX) * 100);
+        document.getElementById('gameOverPercent').textContent = `${percent}%`;
+        document.getElementById('gameOverScreen').classList.remove('hidden');
+    }
 }
 
 // Win game
