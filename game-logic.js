@@ -178,3 +178,92 @@ export function saveHighScore(score, storage = typeof localStorage !== 'undefine
         return false;
     }
 }
+
+
+// ============================================
+// Secret Menu - Cheat Code System
+// ============================================
+
+/**
+ * Valid cheat codes and their effects
+ * All current codes are skin codes (mutually exclusive)
+ */
+export const CHEAT_CODES = {
+    '12x5v2': { name: 'Lion', effect: 'skin_lion', type: 'skin' },
+    'ts2': { name: 'T-Rex', effect: 'skin_trex', type: 'skin' },
+    'pillow': { name: 'Gray Cat', effect: 'skin_graycat', type: 'skin' },
+    'moony': { name: 'Black Cat', effect: 'skin_blackcat', type: 'skin' },
+    'elbow': { name: 'Orange Cat', effect: 'skin_orangecat', type: 'skin' },
+    '772517': { name: 'Dog', effect: 'skin_dog', type: 'skin' },
+    '39213': { name: 'Penguin', effect: 'skin_penguin', type: 'skin' }
+};
+
+
+/**
+ * Checks if a code is a valid cheat code (case-insensitive)
+ * @param {string} code - The code to validate
+ * @returns {boolean} True if the code is valid
+ */
+export function isValidCheatCode(code) {
+    if (typeof code !== 'string') return false;
+    const normalizedCode = code.toLowerCase().trim();
+    return normalizedCode in CHEAT_CODES;
+}
+
+
+/**
+ * Toggles a cheat code on or off
+ * - If code is not active, activates it
+ * - If code is active, deactivates it
+ * - For skin codes: activating one deactivates any other active skin
+ * @param {string} code - The code to toggle
+ * @param {Set<string>} activeCodes - Current set of active codes
+ * @returns {Object} { activeCodes: Set, activated: boolean, valid: boolean }
+ */
+export function toggleCheatCode(code, activeCodes) {
+    const normalizedCode = typeof code === 'string' ? code.toLowerCase().trim() : '';
+    
+    // Check if code is valid
+    if (!isValidCheatCode(normalizedCode)) {
+        return { activeCodes: new Set(activeCodes), activated: false, valid: false };
+    }
+    
+    const newActiveCodes = new Set(activeCodes);
+    const codeInfo = CHEAT_CODES[normalizedCode];
+    
+    // Check if code is already active
+    if (newActiveCodes.has(normalizedCode)) {
+        // Deactivate the code
+        newActiveCodes.delete(normalizedCode);
+        return { activeCodes: newActiveCodes, activated: false, valid: true };
+    }
+    
+    // For skin codes, deactivate any other active skin first
+    if (codeInfo.type === 'skin') {
+        for (const activeCode of newActiveCodes) {
+            if (CHEAT_CODES[activeCode] && CHEAT_CODES[activeCode].type === 'skin') {
+                newActiveCodes.delete(activeCode);
+            }
+        }
+    }
+    
+    // Activate the code
+    newActiveCodes.add(normalizedCode);
+    return { activeCodes: newActiveCodes, activated: true, valid: true };
+}
+
+
+/**
+ * Gets the currently active skin effect, or null if no skin is active
+ * @param {Set<string>} activeCodes - Current set of active codes
+ * @returns {string|null} The effect string of the active skin, or null
+ */
+export function getActiveSkin(activeCodes) {
+    for (const code of activeCodes) {
+        const codeInfo = CHEAT_CODES[code];
+        if (codeInfo && codeInfo.type === 'skin') {
+            return codeInfo.effect;
+        }
+    }
+    return null;
+}

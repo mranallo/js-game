@@ -111,6 +111,16 @@
             background: linear-gradient(135deg, #9b3ee0, #ff6090);
         }
         
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid #790ECB;
+            margin-top: 10px;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(121, 14, 203, 0.2);
+        }
+        
         .new-high-score {
             color: #00ff88;
             font-size: 24px;
@@ -127,6 +137,231 @@
             display: none !important;
         }
         
+        /* Secret Menu Styles */
+        #secretTrigger {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        #secretTrigger:hover {
+            color: #790ECB;
+            text-shadow: 0 0 10px rgba(121, 14, 203, 0.8);
+        }
+        
+        #secretMenuScreen {
+            z-index: 10;
+        }
+        
+        #secretMenuCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        .secret-menu-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .secret-menu-content h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+        
+        #secretCodeInput {
+            background: rgba(121, 14, 203, 0.2);
+            border: 2px solid #790ECB;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 18px;
+            color: white;
+            text-align: center;
+            width: 250px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        #secretCodeInput:focus {
+            border-color: #9b3ee0;
+            box-shadow: 0 0 15px rgba(121, 14, 203, 0.5);
+        }
+        
+        #secretCodeInput::placeholder {
+            color: #666;
+        }
+        
+        #secretCodeFeedback {
+            min-height: 24px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        #secretCodeFeedback.success {
+            color: #00ff88;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+        
+        #secretCodeFeedback.error {
+            color: #ff1744;
+            text-shadow: 0 0 10px rgba(255, 23, 68, 0.5);
+        }
+        
+        .active-codes-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .active-codes-section h3 {
+            color: #888;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        
+        #activeCodesList {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            min-height: 30px;
+        }
+        
+        .active-code-tag {
+            background: rgba(121, 14, 203, 0.3);
+            border: 1px solid #790ECB;
+            border-radius: 15px;
+            padding: 5px 12px;
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        #secretMenuBack {
+            margin-top: 20px;
+            background: transparent;
+            border: 2px solid #666;
+            color: #888;
+        }
+        
+        #secretMenuBack:hover {
+            border-color: #790ECB;
+            color: white;
+            background: rgba(121, 14, 203, 0.2);
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-5px); }
+            40% { transform: translateX(5px); }
+            60% { transform: translateX(-5px); }
+            80% { transform: translateX(5px); }
+        }
+        
+        .skin-selector {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(121, 14, 203, 0.1);
+            border-radius: 15px;
+            border: 1px solid rgba(121, 14, 203, 0.3);
+        }
+        
+        .skin-selector-label {
+            margin-bottom: 10px;
+            color: #b388ff;
+            font-size: 14px;
+        }
+        
+        .skin-options {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .skin-option {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            border: 2px solid #444;
+            background: rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .skin-option:hover {
+            border-color: #790ECB;
+            transform: scale(1.1);
+        }
+        
+        .skin-option.selected {
+            border-color: #00ff88;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+        }
+        
+        .skin-option canvas {
+            border-radius: 6px;
+        }
+        
+        .skin-option-name {
+            position: absolute;
+            bottom: -18px;
+            font-size: 10px;
+            color: #888;
+            white-space: nowrap;
+        }
+        
+        .credits-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: transparent;
+            border: 1px solid #555;
+            color: #888;
+            padding: 8px 16px;
+            font-size: 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .credits-btn:hover {
+            border-color: #790ECB;
+            color: #b388ff;
+        }
+        
+        .credits-content {
+            margin: 40px 0;
+        }
+        
+        .credit-item {
+            margin: 25px 0;
+        }
+        
+        .credit-role {
+            display: block;
+            color: #790ECB;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+        
+        .credit-name {
+            display: block;
+            color: white;
+            font-size: 24px;
+        }
 
     </style>
 </head>
@@ -139,11 +374,35 @@
         <div id="startScreen" class="overlay">
             <h1>Just Shapes and Kiro</h1>
             <p>Dodge the spikes, reach the end!</p>
-            <p class="subtitle">Jump over the spikes and ride the beat!</p>
+            <p class="subtitle">Jump over the spikes and ride the <span id="secretTrigger">beat</span>!</p>
+            <div id="skinSelector" class="skin-selector hidden">
+                <p class="skin-selector-label">Select Skin:</p>
+                <div id="skinOptions" class="skin-options"></div>
+            </div>
             <div class="mode-buttons">
                 <button class="btn" onclick="startStandardMode()">Standard Mode</button>
                 <button class="btn btn-endless" onclick="startEndlessMode()">Endless Mode</button>
             </div>
+            <button class="credits-btn" onclick="showCredits()">Credits</button>
+        </div>
+        
+        <div id="creditsScreen" class="overlay hidden">
+            <h1>Credits</h1>
+            <div class="credits-content">
+                <div class="credit-item">
+                    <span class="credit-role">Programmer</span>
+                    <span class="credit-name">Claude Opus 4.5</span>
+                </div>
+                <div class="credit-item">
+                    <span class="credit-role">Implementor</span>
+                    <span class="credit-name">Mark Ranallo</span>
+                </div>
+                <div class="credit-item">
+                    <span class="credit-role">Producer & Lead Tester</span>
+                    <span class="credit-name">Henry Ranallo</span>
+                </div>
+            </div>
+            <button class="btn btn-secondary" onclick="hideCredits()">Back</button>
         </div>
         
         <div id="gameOverScreen" class="overlay hidden">
@@ -151,12 +410,14 @@
             <p id="gameOverMessage">You hit a spike!</p>
             <p id="gameOverPercent" style="font-size: 36px; color: #790ECB; margin-bottom: 20px;">0%</p>
             <button class="btn" onclick="restartGame()">Try Again</button>
+            <button class="btn btn-secondary" onclick="goToMainMenu()">Main Menu</button>
         </div>
         
         <div id="winScreen" class="overlay hidden">
             <h1>Level Complete!</h1>
             <p>You made it through!</p>
             <button class="btn" onclick="restartGame()">Play Again</button>
+            <button class="btn btn-secondary" onclick="goToMainMenu()">Main Menu</button>
         </div>
         
         <div id="endlessGameOverScreen" class="overlay hidden">
@@ -166,6 +427,22 @@
             <p id="endlessSurvivalTime" style="font-size: 48px; color: #790ECB; margin: 10px 0;">00:00</p>
             <p>High Score: <span id="endlessHighScoreDisplay">00:00</span></p>
             <button class="btn btn-endless" onclick="startEndlessMode()">Try Again</button>
+            <button class="btn btn-secondary" onclick="goToMainMenu()">Main Menu</button>
+        </div>
+        
+        <div id="secretMenuScreen" class="overlay hidden">
+            <canvas id="secretMenuCanvas"></canvas>
+            <div class="secret-menu-content">
+                <h1>Secret Menu</h1>
+                <p>Enter a code to unlock special features</p>
+                <input type="text" id="secretCodeInput" placeholder="Enter code..." autocomplete="off">
+                <p id="secretCodeFeedback"></p>
+                <div class="active-codes-section">
+                    <h3>Active Codes</h3>
+                    <div id="activeCodesList"></div>
+                </div>
+                <button id="secretMenuBack" class="btn">Back</button>
+            </div>
         </div>
     </div>
     

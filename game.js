@@ -455,7 +455,996 @@ function drawSpike(spike) {
     ctx.restore();
 }
 
-// Draw player (Kiro logo)
+// ============================================
+// Player Skin Drawing Functions
+// ============================================
+
+/**
+ * Draws a lion head skin for the player
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} x - X position (top-left)
+ * @param {number} y - Y position (top-left)
+ * @param {number} width - Width of the skin
+ * @param {number} height - Height of the skin
+ * @param {number} scaleX - Horizontal scale for squash/stretch
+ * @param {number} scaleY - Vertical scale for squash/stretch
+ */
+function drawLionSkin(ctx, x, y, width, height, scaleX = 1, scaleY = 1) {
+    ctx.save();
+    
+    // Calculate center point for scaling
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    
+    // Apply scale transformation from center
+    ctx.translate(centerX, centerY);
+    ctx.scale(scaleX, scaleY);
+    ctx.translate(-centerX, -centerY);
+    
+    const size = Math.min(width, height);
+    const scale = size / 50; // Base size is 50x50
+    
+    // Mane (outer circle with jagged edges)
+    ctx.fillStyle = '#D4740C'; // Orange-brown mane
+    ctx.beginPath();
+    const maneRadius = 24 * scale;
+    const manePoints = 12;
+    for (let i = 0; i < manePoints * 2; i++) {
+        const angle = (i / (manePoints * 2)) * Math.PI * 2 - Math.PI / 2;
+        const radius = i % 2 === 0 ? maneRadius : maneRadius * 0.75;
+        const px = centerX + Math.cos(angle) * radius;
+        const py = centerY + Math.sin(angle) * radius;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+    
+    // Inner mane layer (darker)
+    ctx.fillStyle = '#B8620A';
+    ctx.beginPath();
+    const innerManeRadius = 20 * scale;
+    for (let i = 0; i < manePoints * 2; i++) {
+        const angle = (i / (manePoints * 2)) * Math.PI * 2 - Math.PI / 2 + Math.PI / manePoints;
+        const radius = i % 2 === 0 ? innerManeRadius : innerManeRadius * 0.8;
+        const px = centerX + Math.cos(angle) * radius;
+        const py = centerY + Math.sin(angle) * radius;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+    
+    // Face (circle)
+    ctx.fillStyle = '#F5C16C'; // Golden tan face
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 15 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Ears
+    ctx.fillStyle = '#D4740C';
+    // Left ear
+    ctx.beginPath();
+    ctx.arc(centerX - 12 * scale, centerY - 12 * scale, 5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    // Right ear
+    ctx.beginPath();
+    ctx.arc(centerX + 12 * scale, centerY - 12 * scale, 5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Inner ears
+    ctx.fillStyle = '#F5C16C';
+    ctx.beginPath();
+    ctx.arc(centerX - 12 * scale, centerY - 12 * scale, 3 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + 12 * scale, centerY - 12 * scale, 3 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eyes (white)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 5 * scale, centerY - 3 * scale, 4 * scale, 5 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(centerX + 5 * scale, centerY - 3 * scale, 4 * scale, 5 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Pupils
+    ctx.fillStyle = '#2D1B00';
+    ctx.beginPath();
+    ctx.arc(centerX - 5 * scale, centerY - 2 * scale, 2 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + 5 * scale, centerY - 2 * scale, 2 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eye shine
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(centerX - 4 * scale, centerY - 3 * scale, 1 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + 6 * scale, centerY - 3 * scale, 1 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Nose
+    ctx.fillStyle = '#8B4513';
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 3 * scale);
+    ctx.lineTo(centerX - 4 * scale, centerY + 8 * scale);
+    ctx.lineTo(centerX + 4 * scale, centerY + 8 * scale);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Mouth
+    ctx.strokeStyle = '#8B4513';
+    ctx.lineWidth = 1.5 * scale;
+    ctx.lineCap = 'round';
+    // Left curve
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 8 * scale);
+    ctx.quadraticCurveTo(centerX - 4 * scale, centerY + 12 * scale, centerX - 6 * scale, centerY + 10 * scale);
+    ctx.stroke();
+    // Right curve
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 8 * scale);
+    ctx.quadraticCurveTo(centerX + 4 * scale, centerY + 12 * scale, centerX + 6 * scale, centerY + 10 * scale);
+    ctx.stroke();
+    
+    // Whisker dots
+    ctx.fillStyle = '#8B4513';
+    const dotSize = 1 * scale;
+    // Left side
+    ctx.beginPath();
+    ctx.arc(centerX - 8 * scale, centerY + 5 * scale, dotSize, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX - 9 * scale, centerY + 7 * scale, dotSize, 0, Math.PI * 2);
+    ctx.fill();
+    // Right side
+    ctx.beginPath();
+    ctx.arc(centerX + 8 * scale, centerY + 5 * scale, dotSize, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + 9 * scale, centerY + 7 * scale, dotSize, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
+}
+
+/**
+ * Draws a T-Rex head skin for the player
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} x - X position (top-left)
+ * @param {number} y - Y position (top-left)
+ * @param {number} width - Width of the skin
+ * @param {number} height - Height of the skin
+ * @param {number} scaleX - Horizontal scale for squash/stretch
+ * @param {number} scaleY - Vertical scale for squash/stretch
+ */
+function drawTRexSkin(ctx, x, y, width, height, scaleX = 1, scaleY = 1) {
+    ctx.save();
+    
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    
+    ctx.translate(centerX, centerY);
+    ctx.scale(scaleX, scaleY);
+    ctx.translate(-centerX, -centerY);
+    
+    const size = Math.min(width, height);
+    const scale = size / 50;
+    
+    // Head base (green)
+    ctx.fillStyle = '#4A7C23';
+    ctx.beginPath();
+    ctx.ellipse(centerX + 5 * scale, centerY, 20 * scale, 18 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Snout (elongated)
+    ctx.fillStyle = '#5A8C33';
+    ctx.beginPath();
+    ctx.ellipse(centerX + 18 * scale, centerY + 2 * scale, 12 * scale, 10 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Lower jaw
+    ctx.fillStyle = '#3A6C13';
+    ctx.beginPath();
+    ctx.ellipse(centerX + 15 * scale, centerY + 10 * scale, 10 * scale, 6 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Teeth (top)
+    ctx.fillStyle = '#FFFFFF';
+    for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        const toothX = centerX + 12 * scale + i * 4 * scale;
+        ctx.moveTo(toothX, centerY + 4 * scale);
+        ctx.lineTo(toothX + 2 * scale, centerY + 9 * scale);
+        ctx.lineTo(toothX - 2 * scale, centerY + 9 * scale);
+        ctx.closePath();
+        ctx.fill();
+    }
+    
+    // Eye ridge
+    ctx.fillStyle = '#3A6C13';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 2 * scale, centerY - 8 * scale, 10 * scale, 4 * scale, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eye (white)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 2 * scale, centerY - 5 * scale, 6 * scale, 7 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Pupil (slit)
+    ctx.fillStyle = '#1A1A00';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 2 * scale, centerY - 5 * scale, 2 * scale, 6 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eye shine
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(centerX - 4 * scale, centerY - 7 * scale, 1.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Nostril
+    ctx.fillStyle = '#2A5C03';
+    ctx.beginPath();
+    ctx.ellipse(centerX + 26 * scale, centerY - 2 * scale, 2 * scale, 3 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Scales/texture dots
+    ctx.fillStyle = '#3A6C13';
+    const scalePositions = [
+        [-8, -2], [-10, 3], [-6, 6], [0, 8], [5, 10]
+    ];
+    for (const [sx, sy] of scalePositions) {
+        ctx.beginPath();
+        ctx.arc(centerX + sx * scale, centerY + sy * scale, 2 * scale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    ctx.restore();
+}
+
+/**
+ * Draws a gray/white cat head skin for the player
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} x - X position (top-left)
+ * @param {number} y - Y position (top-left)
+ * @param {number} width - Width of the skin
+ * @param {number} height - Height of the skin
+ * @param {number} scaleX - Horizontal scale for squash/stretch
+ * @param {number} scaleY - Vertical scale for squash/stretch
+ */
+function drawGrayCatSkin(ctx, x, y, width, height, scaleX = 1, scaleY = 1) {
+    ctx.save();
+    
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    
+    ctx.translate(centerX, centerY);
+    ctx.scale(scaleX, scaleY);
+    ctx.translate(-centerX, -centerY);
+    
+    const size = Math.min(width, height);
+    const scale = size / 50;
+    
+    // Ears (pointed)
+    ctx.fillStyle = '#808080';
+    // Left ear
+    ctx.beginPath();
+    ctx.moveTo(centerX - 18 * scale, centerY - 5 * scale);
+    ctx.lineTo(centerX - 12 * scale, centerY - 22 * scale);
+    ctx.lineTo(centerX - 5 * scale, centerY - 8 * scale);
+    ctx.closePath();
+    ctx.fill();
+    // Right ear
+    ctx.beginPath();
+    ctx.moveTo(centerX + 18 * scale, centerY - 5 * scale);
+    ctx.lineTo(centerX + 12 * scale, centerY - 22 * scale);
+    ctx.lineTo(centerX + 5 * scale, centerY - 8 * scale);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Inner ears (pink)
+    ctx.fillStyle = '#FFB6C1';
+    ctx.beginPath();
+    ctx.moveTo(centerX - 16 * scale, centerY - 7 * scale);
+    ctx.lineTo(centerX - 12 * scale, centerY - 18 * scale);
+    ctx.lineTo(centerX - 7 * scale, centerY - 9 * scale);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(centerX + 16 * scale, centerY - 7 * scale);
+    ctx.lineTo(centerX + 12 * scale, centerY - 18 * scale);
+    ctx.lineTo(centerX + 7 * scale, centerY - 9 * scale);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Head (gray circle)
+    ctx.fillStyle = '#808080';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 18 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // White muzzle area
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 6 * scale, 10 * scale, 8 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // White chest patch
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 16 * scale, 8 * scale, 6 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eyes (green)
+    ctx.fillStyle = '#90EE90';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 7 * scale, centerY - 3 * scale, 5 * scale, 6 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(centerX + 7 * scale, centerY - 3 * scale, 5 * scale, 6 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Pupils (vertical slits)
+    ctx.fillStyle = '#1A1A1A';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 7 * scale, centerY - 3 * scale, 2 * scale, 5 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(centerX + 7 * scale, centerY - 3 * scale, 2 * scale, 5 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eye shine
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(centerX - 5 * scale, centerY - 5 * scale, 1.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + 9 * scale, centerY - 5 * scale, 1.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Nose (pink triangle)
+    ctx.fillStyle = '#FFB6C1';
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 2 * scale);
+    ctx.lineTo(centerX - 3 * scale, centerY + 6 * scale);
+    ctx.lineTo(centerX + 3 * scale, centerY + 6 * scale);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Mouth
+    ctx.strokeStyle = '#606060';
+    ctx.lineWidth = 1.5 * scale;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 6 * scale);
+    ctx.lineTo(centerX, centerY + 9 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 9 * scale);
+    ctx.quadraticCurveTo(centerX - 4 * scale, centerY + 12 * scale, centerX - 6 * scale, centerY + 10 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 9 * scale);
+    ctx.quadraticCurveTo(centerX + 4 * scale, centerY + 12 * scale, centerX + 6 * scale, centerY + 10 * scale);
+    ctx.stroke();
+    
+    // Whiskers
+    ctx.strokeStyle = '#404040';
+    ctx.lineWidth = 1 * scale;
+    // Left whiskers
+    ctx.beginPath();
+    ctx.moveTo(centerX - 6 * scale, centerY + 7 * scale);
+    ctx.lineTo(centerX - 20 * scale, centerY + 4 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX - 6 * scale, centerY + 8 * scale);
+    ctx.lineTo(centerX - 20 * scale, centerY + 8 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX - 6 * scale, centerY + 9 * scale);
+    ctx.lineTo(centerX - 20 * scale, centerY + 12 * scale);
+    ctx.stroke();
+    // Right whiskers
+    ctx.beginPath();
+    ctx.moveTo(centerX + 6 * scale, centerY + 7 * scale);
+    ctx.lineTo(centerX + 20 * scale, centerY + 4 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX + 6 * scale, centerY + 8 * scale);
+    ctx.lineTo(centerX + 20 * scale, centerY + 8 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX + 6 * scale, centerY + 9 * scale);
+    ctx.lineTo(centerX + 20 * scale, centerY + 12 * scale);
+    ctx.stroke();
+    
+    ctx.restore();
+}
+
+/**
+ * Draws a black cat head skin for the player
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} x - X position (top-left)
+ * @param {number} y - Y position (top-left)
+ * @param {number} width - Width of the skin
+ * @param {number} height - Height of the skin
+ * @param {number} scaleX - Horizontal scale for squash/stretch
+ * @param {number} scaleY - Vertical scale for squash/stretch
+ */
+function drawBlackCatSkin(ctx, x, y, width, height, scaleX = 1, scaleY = 1) {
+    ctx.save();
+    
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    
+    ctx.translate(centerX, centerY);
+    ctx.scale(scaleX, scaleY);
+    ctx.translate(-centerX, -centerY);
+    
+    const size = Math.min(width, height);
+    const scale = size / 50;
+    
+    // Ears (pointed)
+    ctx.fillStyle = '#1A1A1A';
+    // Left ear
+    ctx.beginPath();
+    ctx.moveTo(centerX - 18 * scale, centerY - 5 * scale);
+    ctx.lineTo(centerX - 12 * scale, centerY - 22 * scale);
+    ctx.lineTo(centerX - 5 * scale, centerY - 8 * scale);
+    ctx.closePath();
+    ctx.fill();
+    // Right ear
+    ctx.beginPath();
+    ctx.moveTo(centerX + 18 * scale, centerY - 5 * scale);
+    ctx.lineTo(centerX + 12 * scale, centerY - 22 * scale);
+    ctx.lineTo(centerX + 5 * scale, centerY - 8 * scale);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Inner ears (dark pink)
+    ctx.fillStyle = '#8B4557';
+    ctx.beginPath();
+    ctx.moveTo(centerX - 16 * scale, centerY - 7 * scale);
+    ctx.lineTo(centerX - 12 * scale, centerY - 18 * scale);
+    ctx.lineTo(centerX - 7 * scale, centerY - 9 * scale);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(centerX + 16 * scale, centerY - 7 * scale);
+    ctx.lineTo(centerX + 12 * scale, centerY - 18 * scale);
+    ctx.lineTo(centerX + 7 * scale, centerY - 9 * scale);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Head (black circle)
+    ctx.fillStyle = '#1A1A1A';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 18 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Subtle fur highlight
+    ctx.fillStyle = '#2A2A2A';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 5 * scale, centerY - 8 * scale, 8 * scale, 6 * scale, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eyes (yellow/gold - classic black cat)
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 7 * scale, centerY - 3 * scale, 5 * scale, 6 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(centerX + 7 * scale, centerY - 3 * scale, 5 * scale, 6 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Pupils (vertical slits)
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 7 * scale, centerY - 3 * scale, 1.5 * scale, 5 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(centerX + 7 * scale, centerY - 3 * scale, 1.5 * scale, 5 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eye shine
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(centerX - 5 * scale, centerY - 5 * scale, 1.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + 9 * scale, centerY - 5 * scale, 1.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Nose (dark pink)
+    ctx.fillStyle = '#8B4557';
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 2 * scale);
+    ctx.lineTo(centerX - 3 * scale, centerY + 6 * scale);
+    ctx.lineTo(centerX + 3 * scale, centerY + 6 * scale);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Mouth
+    ctx.strokeStyle = '#3A3A3A';
+    ctx.lineWidth = 1.5 * scale;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 6 * scale);
+    ctx.lineTo(centerX, centerY + 9 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 9 * scale);
+    ctx.quadraticCurveTo(centerX - 4 * scale, centerY + 12 * scale, centerX - 6 * scale, centerY + 10 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 9 * scale);
+    ctx.quadraticCurveTo(centerX + 4 * scale, centerY + 12 * scale, centerX + 6 * scale, centerY + 10 * scale);
+    ctx.stroke();
+    
+    // Whiskers (subtle gray)
+    ctx.strokeStyle = '#4A4A4A';
+    ctx.lineWidth = 1 * scale;
+    // Left whiskers
+    ctx.beginPath();
+    ctx.moveTo(centerX - 6 * scale, centerY + 7 * scale);
+    ctx.lineTo(centerX - 20 * scale, centerY + 4 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX - 6 * scale, centerY + 8 * scale);
+    ctx.lineTo(centerX - 20 * scale, centerY + 8 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX - 6 * scale, centerY + 9 * scale);
+    ctx.lineTo(centerX - 20 * scale, centerY + 12 * scale);
+    ctx.stroke();
+    // Right whiskers
+    ctx.beginPath();
+    ctx.moveTo(centerX + 6 * scale, centerY + 7 * scale);
+    ctx.lineTo(centerX + 20 * scale, centerY + 4 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX + 6 * scale, centerY + 8 * scale);
+    ctx.lineTo(centerX + 20 * scale, centerY + 8 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX + 6 * scale, centerY + 9 * scale);
+    ctx.lineTo(centerX + 20 * scale, centerY + 12 * scale);
+    ctx.stroke();
+    
+    ctx.restore();
+}
+
+/**
+ * Draws a long-haired orange cat head skin for the player
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} x - X position (top-left)
+ * @param {number} y - Y position (top-left)
+ * @param {number} width - Width of the skin
+ * @param {number} height - Height of the skin
+ * @param {number} scaleX - Horizontal scale for squash/stretch
+ * @param {number} scaleY - Vertical scale for squash/stretch
+ */
+function drawOrangeCatSkin(ctx, x, y, width, height, scaleX = 1, scaleY = 1) {
+    ctx.save();
+    
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    
+    ctx.translate(centerX, centerY);
+    ctx.scale(scaleX, scaleY);
+    ctx.translate(-centerX, -centerY);
+    
+    const size = Math.min(width, height);
+    const scale = size / 50;
+    
+    // Ears (pointed)
+    ctx.fillStyle = '#FF8C00';
+    // Left ear
+    ctx.beginPath();
+    ctx.moveTo(centerX - 16 * scale, centerY - 8 * scale);
+    ctx.lineTo(centerX - 10 * scale, centerY - 24 * scale);
+    ctx.lineTo(centerX - 4 * scale, centerY - 10 * scale);
+    ctx.closePath();
+    ctx.fill();
+    // Right ear
+    ctx.beginPath();
+    ctx.moveTo(centerX + 16 * scale, centerY - 8 * scale);
+    ctx.lineTo(centerX + 10 * scale, centerY - 24 * scale);
+    ctx.lineTo(centerX + 4 * scale, centerY - 10 * scale);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Inner ears (pink)
+    ctx.fillStyle = '#FFB6C1';
+    ctx.beginPath();
+    ctx.moveTo(centerX - 14 * scale, centerY - 10 * scale);
+    ctx.lineTo(centerX - 10 * scale, centerY - 20 * scale);
+    ctx.lineTo(centerX - 6 * scale, centerY - 11 * scale);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(centerX + 14 * scale, centerY - 10 * scale);
+    ctx.lineTo(centerX + 10 * scale, centerY - 20 * scale);
+    ctx.lineTo(centerX + 6 * scale, centerY - 11 * scale);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Head (orange circle)
+    ctx.fillStyle = '#FF8C00';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 18 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Lighter face markings
+    ctx.fillStyle = '#FFB060';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 2 * scale, 12 * scale, 10 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // White muzzle
+    ctx.fillStyle = '#FFF5E6';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 8 * scale, 8 * scale, 6 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Tabby stripes on forehead
+    ctx.strokeStyle = '#D06010';
+    ctx.lineWidth = 2 * scale;
+    ctx.lineCap = 'round';
+    // M shape
+    ctx.beginPath();
+    ctx.moveTo(centerX - 8 * scale, centerY - 8 * scale);
+    ctx.lineTo(centerX - 4 * scale, centerY - 12 * scale);
+    ctx.lineTo(centerX, centerY - 9 * scale);
+    ctx.lineTo(centerX + 4 * scale, centerY - 12 * scale);
+    ctx.lineTo(centerX + 8 * scale, centerY - 8 * scale);
+    ctx.stroke();
+    
+    // Eyes (amber/gold)
+    ctx.fillStyle = '#FFB347';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 6 * scale, centerY - 2 * scale, 4 * scale, 5 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(centerX + 6 * scale, centerY - 2 * scale, 4 * scale, 5 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Pupils
+    ctx.fillStyle = '#1A1A1A';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 6 * scale, centerY - 2 * scale, 1.5 * scale, 4 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(centerX + 6 * scale, centerY - 2 * scale, 1.5 * scale, 4 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eye shine
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(centerX - 4 * scale, centerY - 4 * scale, 1.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + 8 * scale, centerY - 4 * scale, 1.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Nose (pink)
+    ctx.fillStyle = '#FFB6C1';
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 4 * scale);
+    ctx.lineTo(centerX - 3 * scale, centerY + 8 * scale);
+    ctx.lineTo(centerX + 3 * scale, centerY + 8 * scale);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Mouth
+    ctx.strokeStyle = '#D06010';
+    ctx.lineWidth = 1.5 * scale;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 8 * scale);
+    ctx.lineTo(centerX, centerY + 10 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 10 * scale);
+    ctx.quadraticCurveTo(centerX - 3 * scale, centerY + 13 * scale, centerX - 5 * scale, centerY + 11 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 10 * scale);
+    ctx.quadraticCurveTo(centerX + 3 * scale, centerY + 13 * scale, centerX + 5 * scale, centerY + 11 * scale);
+    ctx.stroke();
+    
+    // Whiskers
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1 * scale;
+    // Left whiskers
+    ctx.beginPath();
+    ctx.moveTo(centerX - 5 * scale, centerY + 8 * scale);
+    ctx.lineTo(centerX - 18 * scale, centerY + 5 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX - 5 * scale, centerY + 9 * scale);
+    ctx.lineTo(centerX - 18 * scale, centerY + 9 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX - 5 * scale, centerY + 10 * scale);
+    ctx.lineTo(centerX - 18 * scale, centerY + 13 * scale);
+    ctx.stroke();
+    // Right whiskers
+    ctx.beginPath();
+    ctx.moveTo(centerX + 5 * scale, centerY + 8 * scale);
+    ctx.lineTo(centerX + 18 * scale, centerY + 5 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX + 5 * scale, centerY + 9 * scale);
+    ctx.lineTo(centerX + 18 * scale, centerY + 9 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX + 5 * scale, centerY + 10 * scale);
+    ctx.lineTo(centerX + 18 * scale, centerY + 13 * scale);
+    ctx.stroke();
+    
+    ctx.restore();
+}
+
+/**
+ * Draws a dog head skin for the player
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} x - X position (top-left)
+ * @param {number} y - Y position (top-left)
+ * @param {number} width - Width of the skin
+ * @param {number} height - Height of the skin
+ * @param {number} scaleX - Horizontal scale for squash/stretch
+ * @param {number} scaleY - Vertical scale for squash/stretch
+ */
+function drawDogSkin(ctx, x, y, width, height, scaleX = 1, scaleY = 1) {
+    ctx.save();
+    
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    
+    ctx.translate(centerX, centerY);
+    ctx.scale(scaleX, scaleY);
+    ctx.translate(-centerX, -centerY);
+    
+    const size = Math.min(width, height);
+    const scale = size / 50;
+    
+    // Floppy ears (behind head)
+    ctx.fillStyle = '#8B4513';
+    // Left ear
+    ctx.beginPath();
+    ctx.ellipse(centerX - 16 * scale, centerY + 5 * scale, 8 * scale, 14 * scale, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+    // Right ear
+    ctx.beginPath();
+    ctx.ellipse(centerX + 16 * scale, centerY + 5 * scale, 8 * scale, 14 * scale, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Head (golden/tan)
+    ctx.fillStyle = '#D4A574';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 18 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Snout (lighter)
+    ctx.fillStyle = '#E8C9A0';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 8 * scale, 10 * scale, 8 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Forehead patch (darker)
+    ctx.fillStyle = '#B8956C';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY - 10 * scale, 10 * scale, 6 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eyes (brown, friendly)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 7 * scale, centerY - 3 * scale, 5 * scale, 6 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(centerX + 7 * scale, centerY - 3 * scale, 5 * scale, 6 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Pupils (round, friendly)
+    ctx.fillStyle = '#4A3520';
+    ctx.beginPath();
+    ctx.arc(centerX - 6 * scale, centerY - 2 * scale, 3 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + 8 * scale, centerY - 2 * scale, 3 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eye shine
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(centerX - 5 * scale, centerY - 4 * scale, 1.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + 9 * scale, centerY - 4 * scale, 1.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eyebrows (expressive)
+    ctx.strokeStyle = '#8B4513';
+    ctx.lineWidth = 2 * scale;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(centerX - 11 * scale, centerY - 9 * scale);
+    ctx.quadraticCurveTo(centerX - 7 * scale, centerY - 12 * scale, centerX - 3 * scale, centerY - 10 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX + 11 * scale, centerY - 9 * scale);
+    ctx.quadraticCurveTo(centerX + 7 * scale, centerY - 12 * scale, centerX + 3 * scale, centerY - 10 * scale);
+    ctx.stroke();
+    
+    // Nose (black, shiny)
+    ctx.fillStyle = '#1A1A1A';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 5 * scale, 5 * scale, 4 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Nose shine
+    ctx.fillStyle = '#4A4A4A';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 1 * scale, centerY + 4 * scale, 2 * scale, 1.5 * scale, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Mouth (happy smile)
+    ctx.strokeStyle = '#6B4423';
+    ctx.lineWidth = 2 * scale;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 9 * scale);
+    ctx.quadraticCurveTo(centerX - 6 * scale, centerY + 15 * scale, centerX - 10 * scale, centerY + 12 * scale);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + 9 * scale);
+    ctx.quadraticCurveTo(centerX + 6 * scale, centerY + 15 * scale, centerX + 10 * scale, centerY + 12 * scale);
+    ctx.stroke();
+    
+    // Tongue (optional happy dog)
+    ctx.fillStyle = '#FF6B8A';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 14 * scale, 4 * scale, 5 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FF8FAA';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 13 * scale, 2 * scale, 2 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
+}
+
+/**
+ * Draws a penguin skin for the player
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} x - X position (top-left)
+ * @param {number} y - Y position (top-left)
+ * @param {number} width - Width of the skin
+ * @param {number} height - Height of the skin
+ * @param {number} scaleX - Horizontal scale for squash/stretch
+ * @param {number} scaleY - Vertical scale for squash/stretch
+ */
+function drawPenguinSkin(ctx, x, y, width, height, scaleX = 1, scaleY = 1) {
+    ctx.save();
+    
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    
+    ctx.translate(centerX, centerY);
+    ctx.scale(scaleX, scaleY);
+    ctx.translate(-centerX, -centerY);
+    
+    const size = Math.min(width, height);
+    const scale = size / 50;
+    
+    // Body (black oval)
+    ctx.fillStyle = '#1A1A2E';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 2 * scale, 18 * scale, 22 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // White belly
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 6 * scale, 12 * scale, 16 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Head (black circle, slightly overlapping body)
+    ctx.fillStyle = '#1A1A2E';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY - 10 * scale, 14 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // White face patches
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 6 * scale, centerY - 8 * scale, 5 * scale, 6 * scale, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(centerX + 6 * scale, centerY - 8 * scale, 5 * scale, 6 * scale, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eyes (cute round eyes)
+    ctx.fillStyle = '#1A1A1A';
+    ctx.beginPath();
+    ctx.arc(centerX - 5 * scale, centerY - 10 * scale, 4 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + 5 * scale, centerY - 10 * scale, 4 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eye shine
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(centerX - 4 * scale, centerY - 11 * scale, 1.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + 6 * scale, centerY - 11 * scale, 1.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Beak (orange)
+    ctx.fillStyle = '#FF8C00';
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY - 6 * scale);
+    ctx.lineTo(centerX - 5 * scale, centerY - 2 * scale);
+    ctx.lineTo(centerX, centerY + 2 * scale);
+    ctx.lineTo(centerX + 5 * scale, centerY - 2 * scale);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Beak highlight
+    ctx.fillStyle = '#FFB347';
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY - 6 * scale);
+    ctx.lineTo(centerX - 3 * scale, centerY - 3 * scale);
+    ctx.lineTo(centerX, centerY - 1 * scale);
+    ctx.lineTo(centerX + 3 * scale, centerY - 3 * scale);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Flippers (small wings on sides)
+    ctx.fillStyle = '#1A1A2E';
+    // Left flipper
+    ctx.beginPath();
+    ctx.ellipse(centerX - 18 * scale, centerY + 5 * scale, 5 * scale, 10 * scale, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    // Right flipper
+    ctx.beginPath();
+    ctx.ellipse(centerX + 18 * scale, centerY + 5 * scale, 5 * scale, 10 * scale, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Feet (orange)
+    ctx.fillStyle = '#FF8C00';
+    // Left foot
+    ctx.beginPath();
+    ctx.ellipse(centerX - 6 * scale, centerY + 22 * scale, 5 * scale, 3 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Right foot
+    ctx.beginPath();
+    ctx.ellipse(centerX + 6 * scale, centerY + 22 * scale, 5 * scale, 3 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Rosy cheeks (cute)
+    ctx.fillStyle = 'rgba(255, 150, 150, 0.4)';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 10 * scale, centerY - 5 * scale, 3 * scale, 2 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(centerX + 10 * scale, centerY - 5 * scale, 3 * scale, 2 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
+}
+
+// Draw player (Kiro logo or active skin)
 function drawPlayer() {
     const screenX = player.x - cameraX;
     
@@ -473,7 +1462,47 @@ function drawPlayer() {
     const offsetX = (player.width - scaledWidth) / 2;
     const offsetY = player.height - scaledHeight;
     
-    if (logoLoaded) {
+    // Check for active skin
+    const activeSkin = getActiveSkin();
+    
+    if (activeSkin) {
+        // Render the active skin
+        const drawX = screenX + offsetX;
+        const drawY = player.y + offsetY;
+        
+        switch (activeSkin) {
+            case 'skin_lion':
+                drawLionSkin(ctx, drawX, drawY, player.width, player.height, player.scaleX, player.scaleY);
+                break;
+            case 'skin_trex':
+                drawTRexSkin(ctx, drawX, drawY, player.width, player.height, player.scaleX, player.scaleY);
+                break;
+            case 'skin_graycat':
+                drawGrayCatSkin(ctx, drawX, drawY, player.width, player.height, player.scaleX, player.scaleY);
+                break;
+            case 'skin_blackcat':
+                drawBlackCatSkin(ctx, drawX, drawY, player.width, player.height, player.scaleX, player.scaleY);
+                break;
+            case 'skin_orangecat':
+                drawOrangeCatSkin(ctx, drawX, drawY, player.width, player.height, player.scaleX, player.scaleY);
+                break;
+            case 'skin_dog':
+                drawDogSkin(ctx, drawX, drawY, player.width, player.height, player.scaleX, player.scaleY);
+                break;
+            case 'skin_penguin':
+                drawPenguinSkin(ctx, drawX, drawY, player.width, player.height, player.scaleX, player.scaleY);
+                break;
+            default:
+                // Unknown skin, fall back to Kiro logo
+                if (logoLoaded) {
+                    ctx.drawImage(kiroLogo, screenX + offsetX, player.y + offsetY, scaledWidth, scaledHeight);
+                } else {
+                    ctx.fillStyle = '#790ECB';
+                    ctx.fillRect(screenX + offsetX, player.y + offsetY, scaledWidth, scaledHeight);
+                }
+        }
+    } else if (logoLoaded) {
+        // No skin active, draw Kiro logo
         ctx.drawImage(
             kiroLogo, 
             screenX + offsetX, 
@@ -651,7 +1680,7 @@ function drawBackground() {
         ctx.strokeStyle = accentColor;
         ctx.lineWidth = 2;
         ctx.globalAlpha = (beatPulse - 0.6) * 0.3;
-        const ringSize = (1 - (beatPulse - 0.6) / 0.4) * 200 + 50;
+        const ringSize = Math.max(0, (1 - (beatPulse - 0.6) / 0.4) * 200 + 50);
         ctx.beginPath();
         ctx.arc(canvas.width / 2, GROUND_Y / 2, ringSize, 0, Math.PI * 2);
         ctx.stroke();
@@ -796,7 +1825,7 @@ function drawBigDropEffects() {
             ctx.lineWidth = 5 + (1 - ringProgress) * 10;
             ctx.globalAlpha = Math.max(0, (1 - ringProgress) * 0.8);
             ctx.beginPath();
-            ctx.arc(canvas.width / 2, GROUND_Y / 2, ringProgress * 500, 0, Math.PI * 2);
+            ctx.arc(canvas.width / 2, GROUND_Y / 2, Math.max(0, ringProgress * 500), 0, Math.PI * 2);
             ctx.stroke();
         }
     }
@@ -1062,11 +2091,18 @@ function updatePlayer(deltaTime) {
         player.scaleY += (1 - player.scaleY) * 0.3;
     }
     
-    // Move player forward with camera (use dynamic speed in Endless Mode, frame-rate independent)
-    const scrollSpeed = (gameMode === GameMode.ENDLESS && currentDifficulty) 
-        ? currentDifficulty.scrollSpeed 
-        : SCROLL_SPEED;
-    player.x += scrollSpeed * dtMultiplier;
+    // Move player forward
+    if (gameMode === GameMode.STANDARD) {
+        // In Standard Mode, sync position to music time for perfect drop sync
+        // 4 pixels/frame * 60 frames/sec = 240 pixels/sec
+        const pixelsPerSecond = SCROLL_SPEED * 60;
+        const startX = 150;
+        player.x = startX + (music.currentTime * pixelsPerSecond);
+    } else {
+        // Endless Mode uses frame-rate independent movement
+        const scrollSpeed = currentDifficulty ? currentDifficulty.scrollSpeed : SCROLL_SPEED;
+        player.x += scrollSpeed * dtMultiplier;
+    }
 }
 
 // Update camera to follow player
@@ -1294,6 +2330,11 @@ function startGame() {
         spikes = [];
         levelEndX = Infinity; // No end in endless mode
         lastGeneratedX = player.x + 200;
+        // Reset endless mode state
+        survivalTime = 0;
+        currentDifficulty = calculateDifficulty(0);
+        lastDifficultyLevel = 1;
+        difficultyIndicatorTime = 0;
     } else {
         generateLevel();
     }
@@ -1498,6 +2539,37 @@ function restartGame() {
     startGame();
 }
 
+// Go to main menu
+function goToMainMenu() {
+    gameState = 'start';
+    gameLoopRunning = false;
+    music.pause();
+    music.currentTime = 0;
+    
+    // Hide all overlays
+    document.getElementById('gameOverScreen').classList.add('hidden');
+    document.getElementById('winScreen').classList.add('hidden');
+    document.getElementById('endlessGameOverScreen').classList.add('hidden');
+    
+    // Show start screen
+    document.getElementById('startScreen').classList.remove('hidden');
+    
+    // Update skin selector
+    updateSkinSelector();
+}
+
+// Show credits screen
+function showCredits() {
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('creditsScreen').classList.remove('hidden');
+}
+
+// Hide credits screen
+function hideCredits() {
+    document.getElementById('creditsScreen').classList.add('hidden');
+    document.getElementById('startScreen').classList.remove('hidden');
+}
+
 // Input handling
 document.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
@@ -1529,6 +2601,485 @@ canvas.addEventListener('touchstart', (e) => {
 canvas.addEventListener('touchend', (e) => {
     e.preventDefault();
     releaseJump();
+});
+
+// ============================================
+// Secret Menu System
+// ============================================
+
+// Import cheat code functions (these are defined in game-logic.js but we need local versions for browser)
+// Active codes state (session-based, cleared on page refresh)
+let activeCodes = new Set();
+
+// Unlocked skins (persists in session, tracks all skins player has unlocked)
+let unlockedSkins = new Set();
+// Currently selected skin (null = default Kiro logo)
+let selectedSkin = null;
+
+// Secret menu animation state
+let secretMenuAnimationId = null;
+let secretMenuShapes = [];
+
+// Kiro brand colors for secret menu
+const SECRET_MENU_COLORS = ['#790ECB', '#ff1744', '#00bcd4'];
+
+// Parallax layer configuration: far (slow), mid, near (fast)
+const PARALLAX_LAYERS = [
+    { speed: 0.2, alpha: 0.08, sizeMultiplier: 0.6 },  // Far layer - slow, faint, small
+    { speed: 0.5, alpha: 0.12, sizeMultiplier: 1.0 },  // Mid layer - medium
+    { speed: 0.9, alpha: 0.18, sizeMultiplier: 1.4 }   // Near layer - fast, bright, large
+];
+
+// Initialize secret menu background shapes with parallax layers
+function initSecretMenuShapes() {
+    secretMenuShapes = [];
+    const shapesPerLayer = 12;
+    
+    for (let layer = 0; layer < PARALLAX_LAYERS.length; layer++) {
+        const layerConfig = PARALLAX_LAYERS[layer];
+        
+        for (let i = 0; i < shapesPerLayer; i++) {
+            const baseSize = 20 + Math.random() * 50;
+            secretMenuShapes.push({
+                x: Math.random() * 900,
+                y: Math.random() * 500,
+                size: baseSize * layerConfig.sizeMultiplier,
+                type: Math.floor(Math.random() * 4), // 0: circle, 1: square, 2: triangle, 3: diamond
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.015 * (layer + 1),
+                floatOffset: Math.random() * Math.PI * 2,
+                floatSpeed: 0.3 + Math.random() * 0.8,
+                floatAmount: 8 + Math.random() * 20,
+                colorIndex: Math.floor(Math.random() * 3),
+                layer: layer,
+                // Parallax velocity based on layer
+                vx: (Math.random() - 0.5) * layerConfig.speed,
+                vy: (Math.random() - 0.5) * layerConfig.speed * 0.5,
+                // Individual breathing phase offset
+                breatheOffset: Math.random() * Math.PI * 2,
+                breatheSpeed: 0.8 + Math.random() * 0.6
+            });
+        }
+    }
+}
+
+// Secret menu background animation with pulsing/breathing and parallax
+function animateSecretMenuBackground() {
+    const secretCanvas = document.getElementById('secretMenuCanvas');
+    if (!secretCanvas) return;
+    
+    const secretCtx = secretCanvas.getContext('2d');
+    secretCanvas.width = 900;
+    secretCanvas.height = 500;
+    
+    let time = 0;
+    
+    function draw() {
+        time += 0.016; // ~60fps
+        
+        // Clear with dark background
+        secretCtx.fillStyle = '#0a0a0f';
+        secretCtx.fillRect(0, 0, secretCanvas.width, secretCanvas.height);
+        
+        // Global breathing effect - affects overall scene intensity
+        const globalBreath = Math.sin(time * 1.2) * 0.15 + 0.85;
+        
+        // Draw large pulsing background circles (breathing effect)
+        for (let i = 0; i < 4; i++) {
+            // Breathing pulse - smooth sine wave
+            const breathe = Math.sin(time * 1.5 + i * 1.5) * 0.5 + 0.5;
+            const size = 80 + breathe * 120 + i * 50;
+            const x = (secretCanvas.width * (i + 1) / 5) + Math.sin(time * 0.4 + i) * 60;
+            const y = secretCanvas.height / 2 + Math.cos(time * 0.25 + i * 0.8) * 40;
+            
+            secretCtx.save();
+            // Alpha also breathes
+            secretCtx.globalAlpha = (0.06 + breathe * 0.06) * globalBreath;
+            secretCtx.fillStyle = SECRET_MENU_COLORS[i % SECRET_MENU_COLORS.length];
+            secretCtx.beginPath();
+            secretCtx.arc(x, y, size, 0, Math.PI * 2);
+            secretCtx.fill();
+            secretCtx.restore();
+        }
+        
+        // Draw floating shapes by layer (far to near for proper depth)
+        for (let layerIndex = 0; layerIndex < PARALLAX_LAYERS.length; layerIndex++) {
+            const layerConfig = PARALLAX_LAYERS[layerIndex];
+            
+            for (const shape of secretMenuShapes) {
+                if (shape.layer !== layerIndex) continue;
+                
+                // Update position with parallax movement
+                shape.x += shape.vx;
+                shape.y += shape.vy;
+                
+                // Wrap around screen
+                if (shape.x < -shape.size) shape.x = secretCanvas.width + shape.size;
+                if (shape.x > secretCanvas.width + shape.size) shape.x = -shape.size;
+                if (shape.y < -shape.size) shape.y = secretCanvas.height + shape.size;
+                if (shape.y > secretCanvas.height + shape.size) shape.y = -shape.size;
+                
+                // Floating animation (vertical bob)
+                const floatY = shape.y + Math.sin(time * shape.floatSpeed + shape.floatOffset) * shape.floatAmount;
+                
+                // Update rotation
+                shape.rotation += shape.rotationSpeed;
+                
+                // Individual breathing/pulsing scale effect
+                const breatheScale = 1 + Math.sin(time * shape.breatheSpeed + shape.breatheOffset) * 0.2;
+                
+                // Alpha also pulses with breathing
+                const breatheAlpha = layerConfig.alpha * (0.7 + Math.sin(time * shape.breatheSpeed + shape.breatheOffset) * 0.3);
+                
+                secretCtx.save();
+                secretCtx.translate(shape.x, floatY);
+                secretCtx.rotate(shape.rotation);
+                secretCtx.scale(breatheScale, breatheScale);
+                secretCtx.globalAlpha = breatheAlpha * globalBreath;
+                secretCtx.fillStyle = SECRET_MENU_COLORS[shape.colorIndex];
+                
+                // Draw shape based on type
+                switch (shape.type) {
+                    case 0: // Circle
+                        secretCtx.beginPath();
+                        secretCtx.arc(0, 0, shape.size / 2, 0, Math.PI * 2);
+                        secretCtx.fill();
+                        break;
+                    case 1: // Square
+                        secretCtx.fillRect(-shape.size / 2, -shape.size / 2, shape.size, shape.size);
+                        break;
+                    case 2: // Triangle
+                        secretCtx.beginPath();
+                        secretCtx.moveTo(0, -shape.size / 2);
+                        secretCtx.lineTo(shape.size / 2, shape.size / 2);
+                        secretCtx.lineTo(-shape.size / 2, shape.size / 2);
+                        secretCtx.closePath();
+                        secretCtx.fill();
+                        break;
+                    case 3: // Diamond
+                        secretCtx.beginPath();
+                        secretCtx.moveTo(0, -shape.size / 2);
+                        secretCtx.lineTo(shape.size / 2, 0);
+                        secretCtx.lineTo(0, shape.size / 2);
+                        secretCtx.lineTo(-shape.size / 2, 0);
+                        secretCtx.closePath();
+                        secretCtx.fill();
+                        break;
+                }
+                
+                secretCtx.restore();
+            }
+        }
+        
+        // Add subtle glow rings that pulse outward
+        const ringCount = 3;
+        for (let i = 0; i < ringCount; i++) {
+            const ringPhase = (time * 0.5 + i * 0.33) % 1;
+            const ringSize = ringPhase * 300;
+            const ringAlpha = (1 - ringPhase) * 0.08 * globalBreath;
+            
+            secretCtx.save();
+            secretCtx.strokeStyle = SECRET_MENU_COLORS[i % SECRET_MENU_COLORS.length];
+            secretCtx.lineWidth = 2;
+            secretCtx.globalAlpha = ringAlpha;
+            secretCtx.beginPath();
+            secretCtx.arc(secretCanvas.width / 2, secretCanvas.height / 2, ringSize, 0, Math.PI * 2);
+            secretCtx.stroke();
+            secretCtx.restore();
+        }
+        
+        secretMenuAnimationId = requestAnimationFrame(draw);
+    }
+    
+    draw();
+}
+
+// Stop secret menu background animation
+function stopSecretMenuAnimation() {
+    if (secretMenuAnimationId) {
+        cancelAnimationFrame(secretMenuAnimationId);
+        secretMenuAnimationId = null;
+    }
+}
+
+// Show secret menu
+function showSecretMenu() {
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('secretMenuScreen').classList.remove('hidden');
+    
+    // Initialize and start background animation
+    initSecretMenuShapes();
+    animateSecretMenuBackground();
+    
+    // Focus the input field
+    const input = document.getElementById('secretCodeInput');
+    if (input) {
+        input.value = '';
+        input.focus();
+    }
+    
+    // Update active codes display
+    updateActiveCodesDisplay();
+}
+
+// Hide secret menu
+function hideSecretMenu() {
+    document.getElementById('secretMenuScreen').classList.add('hidden');
+    document.getElementById('startScreen').classList.remove('hidden');
+    
+    // Stop background animation
+    stopSecretMenuAnimation();
+    
+    // Update skin selector on start screen
+    updateSkinSelector();
+}
+
+// Update the active codes display (shows unlocked skins)
+function updateActiveCodesDisplay() {
+    const listElement = document.getElementById('activeCodesList');
+    if (!listElement) return;
+    
+    listElement.innerHTML = '';
+    
+    if (unlockedSkins.size === 0) {
+        listElement.innerHTML = '<span style="color: #666; font-size: 12px;">No skins unlocked</span>';
+        return;
+    }
+    
+    for (const code of unlockedSkins) {
+        const codeInfo = CHEAT_CODES[code];
+        if (codeInfo) {
+            const tag = document.createElement('span');
+            tag.className = 'active-code-tag';
+            tag.textContent = codeInfo.name;
+            listElement.appendChild(tag);
+        }
+    }
+}
+
+// Handle code entry
+function handleCodeEntry(inputValue) {
+    const feedbackElement = document.getElementById('secretCodeFeedback');
+    const inputElement = document.getElementById('secretCodeInput');
+    
+    if (!inputValue || inputValue.trim() === '') {
+        feedbackElement.textContent = 'Please enter a code';
+        feedbackElement.className = 'error';
+        return;
+    }
+    
+    const normalizedCode = inputValue.toLowerCase().trim();
+    
+    if (!isValidCheatCode(normalizedCode)) {
+        feedbackElement.textContent = 'Invalid code';
+        feedbackElement.className = 'error';
+        // Shake animation on input
+        inputElement.style.animation = 'none';
+        inputElement.offsetHeight; // Trigger reflow
+        inputElement.style.animation = 'shake 0.3s ease';
+    } else {
+        const codeInfo = CHEAT_CODES[normalizedCode];
+        
+        // Check if already unlocked
+        if (unlockedSkins.has(normalizedCode)) {
+            feedbackElement.textContent = `${codeInfo.name} already unlocked!`;
+            feedbackElement.className = 'error';
+        } else {
+            // Unlock the skin
+            unlockedSkins.add(normalizedCode);
+            // Also set it as the selected skin
+            selectedSkin = codeInfo.effect;
+            feedbackElement.textContent = `${codeInfo.name} unlocked!`;
+            feedbackElement.className = 'success';
+            // Update the skin selector on start screen
+            updateSkinSelector();
+        }
+    }
+    
+    // Clear input
+    inputElement.value = '';
+    
+    // Update active codes display
+    updateActiveCodesDisplay();
+}
+
+// Local versions of cheat code functions (for browser use)
+const CHEAT_CODES = {
+    '12x5v2': { name: 'Lion', effect: 'skin_lion', type: 'skin' },
+    'ts2': { name: 'T-Rex', effect: 'skin_trex', type: 'skin' },
+    'pillow': { name: 'Gray Cat', effect: 'skin_graycat', type: 'skin' },
+    'moony': { name: 'Black Cat', effect: 'skin_blackcat', type: 'skin' },
+    'elbow': { name: 'Orange Cat', effect: 'skin_orangecat', type: 'skin' },
+    '772517': { name: 'Dog', effect: 'skin_dog', type: 'skin' },
+    '39213': { name: 'Penguin', effect: 'skin_penguin', type: 'skin' }
+};
+
+function isValidCheatCode(code) {
+    if (typeof code !== 'string') return false;
+    const normalizedCode = code.toLowerCase().trim();
+    return normalizedCode in CHEAT_CODES;
+}
+
+function toggleCheatCode(code, activeCodesSet) {
+    const normalizedCode = typeof code === 'string' ? code.toLowerCase().trim() : '';
+    
+    if (!isValidCheatCode(normalizedCode)) {
+        return { activeCodes: new Set(activeCodesSet), activated: false, valid: false };
+    }
+    
+    const newActiveCodes = new Set(activeCodesSet);
+    const codeInfo = CHEAT_CODES[normalizedCode];
+    
+    if (newActiveCodes.has(normalizedCode)) {
+        newActiveCodes.delete(normalizedCode);
+        return { activeCodes: newActiveCodes, activated: false, valid: true };
+    }
+    
+    // For skin codes, deactivate any other active skin first
+    if (codeInfo.type === 'skin') {
+        for (const activeCode of newActiveCodes) {
+            if (CHEAT_CODES[activeCode] && CHEAT_CODES[activeCode].type === 'skin') {
+                newActiveCodes.delete(activeCode);
+            }
+        }
+    }
+    
+    newActiveCodes.add(normalizedCode);
+    return { activeCodes: newActiveCodes, activated: true, valid: true };
+}
+
+function getActiveSkin() {
+    return selectedSkin;
+}
+
+// Skin drawing functions map for selector
+const SKIN_DRAW_FUNCTIONS = {
+    'skin_lion': drawLionSkin,
+    'skin_trex': drawTRexSkin,
+    'skin_graycat': drawGrayCatSkin,
+    'skin_blackcat': drawBlackCatSkin,
+    'skin_orangecat': drawOrangeCatSkin,
+    'skin_dog': drawDogSkin,
+    'skin_penguin': drawPenguinSkin
+};
+
+// Update the skin selector on the start screen
+function updateSkinSelector() {
+    const selectorContainer = document.getElementById('skinSelector');
+    const optionsContainer = document.getElementById('skinOptions');
+    
+    if (!selectorContainer || !optionsContainer) return;
+    
+    // Only show if more than 1 skin is unlocked (so player has a choice)
+    if (unlockedSkins.size < 1) {
+        selectorContainer.classList.add('hidden');
+        return;
+    }
+    
+    selectorContainer.classList.remove('hidden');
+    optionsContainer.innerHTML = '';
+    
+    // Add default Kiro option
+    const defaultOption = createSkinOption(null, 'Kiro');
+    optionsContainer.appendChild(defaultOption);
+    
+    // Add unlocked skins
+    for (const code of unlockedSkins) {
+        const codeInfo = CHEAT_CODES[code];
+        if (codeInfo) {
+            const option = createSkinOption(codeInfo.effect, codeInfo.name);
+            optionsContainer.appendChild(option);
+        }
+    }
+}
+
+// Create a skin option element
+function createSkinOption(skinEffect, name) {
+    const option = document.createElement('div');
+    option.className = 'skin-option';
+    if (selectedSkin === skinEffect) {
+        option.classList.add('selected');
+    }
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = 50;
+    canvas.height = 50;
+    const ctx = canvas.getContext('2d');
+    
+    if (skinEffect === null) {
+        // Draw Kiro logo
+        const kiroImg = new Image();
+        kiroImg.src = 'kiro-logo.png';
+        kiroImg.onload = () => {
+            ctx.drawImage(kiroImg, 0, 0, 50, 50);
+        };
+        // Draw placeholder while loading
+        ctx.fillStyle = '#790ECB';
+        ctx.beginPath();
+        ctx.arc(25, 25, 20, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        // Draw the skin
+        const drawFn = SKIN_DRAW_FUNCTIONS[skinEffect];
+        if (drawFn) {
+            drawFn(ctx, 0, 0, 50, 50, 1, 1);
+        }
+    }
+    
+    option.appendChild(canvas);
+    
+    const nameLabel = document.createElement('span');
+    nameLabel.className = 'skin-option-name';
+    nameLabel.textContent = name;
+    option.appendChild(nameLabel);
+    
+    option.addEventListener('click', () => {
+        selectedSkin = skinEffect;
+        updateSkinSelector();
+    });
+    
+    return option;
+}
+
+// Set up secret menu event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    // Click handler for "beat" trigger
+    const secretTrigger = document.getElementById('secretTrigger');
+    if (secretTrigger) {
+        secretTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showSecretMenu();
+        });
+    }
+    
+    // Back button handler
+    const backButton = document.getElementById('secretMenuBack');
+    if (backButton) {
+        backButton.addEventListener('click', () => {
+            hideSecretMenu();
+        });
+    }
+    
+    // Code input handler
+    const codeInput = document.getElementById('secretCodeInput');
+    if (codeInput) {
+        codeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleCodeEntry(codeInput.value);
+            }
+        });
+    }
+});
+
+// ESC key handler for secret menu (add to existing keydown listener)
+document.addEventListener('keydown', (e) => {
+    if (e.code === 'Escape') {
+        const secretMenu = document.getElementById('secretMenuScreen');
+        if (secretMenu && !secretMenu.classList.contains('hidden')) {
+            hideSecretMenu();
+        }
+    }
 });
 
 // Initial draw
