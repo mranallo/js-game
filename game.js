@@ -777,11 +777,6 @@ function drawGrayCatSkin(ctx, x, y, width, height, scaleX = 1, scaleY = 1) {
     ctx.ellipse(centerX, centerY + 6 * scale, 10 * scale, 8 * scale, 0, 0, Math.PI * 2);
     ctx.fill();
     
-    // White chest patch
-    ctx.beginPath();
-    ctx.ellipse(centerX, centerY + 16 * scale, 8 * scale, 6 * scale, 0, 0, Math.PI * 2);
-    ctx.fill();
-    
     // Eyes (green)
     ctx.fillStyle = '#90EE90';
     ctx.beginPath();
@@ -2908,7 +2903,7 @@ const CHEAT_CODES = {
     '12x5v2': { name: 'Lion', effect: 'skin_lion', type: 'skin' },
     'ts2': { name: 'T-Rex', effect: 'skin_trex', type: 'skin' },
     'pillow': { name: 'Gray Cat', effect: 'skin_graycat', type: 'skin' },
-    'moony': { name: 'Black Cat', effect: 'skin_blackcat', type: 'skin' },
+    'mooney': { name: 'Black Cat', effect: 'skin_blackcat', type: 'skin' },
     'elbow': { name: 'Orange Cat', effect: 'skin_orangecat', type: 'skin' },
     '772517': { name: 'Dog', effect: 'skin_dog', type: 'skin' },
     '39213': { name: 'Penguin', effect: 'skin_penguin', type: 'skin' }

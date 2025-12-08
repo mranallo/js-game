@@ -192,7 +192,7 @@ export const CHEAT_CODES = {
     '12x5v2': { name: 'Lion', effect: 'skin_lion', type: 'skin' },
     'ts2': { name: 'T-Rex', effect: 'skin_trex', type: 'skin' },
     'pillow': { name: 'Gray Cat', effect: 'skin_graycat', type: 'skin' },
-    'moony': { name: 'Black Cat', effect: 'skin_blackcat', type: 'skin' },
+    'mooney': { name: 'Black Cat', effect: 'skin_blackcat', type: 'skin' },
     'elbow': { name: 'Orange Cat', effect: 'skin_orangecat', type: 'skin' },
     '772517': { name: 'Dog', effect: 'skin_dog', type: 'skin' },
     '39213': { name: 'Penguin', effect: 'skin_penguin', type: 'skin' }
